@@ -1260,6 +1260,648 @@ EXECUTE FUNCTION fn_instead_of_vw_stock_quito();
 
 ---
 
+## 🌐 Implementación Avanzada de Triggers sobre Bases de Datos Reales: Pagila, Employees y MusicBrainz
+
+Para consolidar el dominio de triggers en escenarios de escala real, aplicaremos los 5 patrones de producción sobre las **3 bases de datos estándar de la industria** utilizadas en la asignatura:
+
+| Base de Datos | Escala y Dominio | Tablas Clave Intervenidas con Triggers | Fuente Oficial |
+| :--- | :--- | :--- | :--- |
+| **1. Pagila (`pagila`)** | ~62.322 filas en 33 tablas (Alquiler de películas en múltiples tiendas) | `film`, `payment`, `rental`, `inventory`, `customer`, vista `customer_list` | [Pagila en GitHub](https://github.com/xzilla/pagila) / [Neon Sample DBs](https://github.com/neondatabase/postgres-sample-dbs) |
+| **2. Employees (`employees`)** | ~3.919.015 filas, 333 MB en 6 tablas (Nómina e historial laboral) | `salaries` (2,84M filas), `dept_emp`, `departments`, `employees` | [Neon Postgres Sample DBs](https://github.com/neondatabase/postgres-sample-dbs) |
+| **3. MusicBrainz (`musicbrainz`)** | Catálogo enciclopédico global de metadatos musicales | `artist`, `recording`, `link`, `l_artist_recording` | [MusicBrainz Database Docs](https://musicbrainz.org/doc/MusicBrainz_Database) |
+
+---
+
+### A. Patrones Avanzados de Triggers sobre `Pagila` (Negocio de Alquiler de Películas)
+
+#### Patrón Pagila 1: Auditoría Forense Diferencial con `JSONB` sobre `film` y `payment`
+En el negocio de videoclubes de `Pagila`, cualquier alteración en las tarifas de alquiler (`rental_rate`), costo de reposición (`replacement_cost`) de la tabla `film` o en los montos cobrados (`amount`) de la tabla `payment` debe quedar registrada en una bitácora inmutable que almacene **únicamente las propiedades JSONB que sufrieron cambios**:
+
+```sql
+-- ============================================================================
+-- PAGILA PATRÓN 1: AUDITORÍA FORENSE DIFERENCIAL JSONB EN FILM Y PAYMENT
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.pagila_audit_forense_jsonb (
+    audit_id        BIGSERIAL PRIMARY KEY,
+    event_timestamp TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    txid            BIGINT NOT NULL DEFAULT txid_current(),
+    table_name      TEXT NOT NULL,
+    operation       VARCHAR(10) NOT NULL,
+    db_user         TEXT NOT NULL DEFAULT current_user,
+    client_ip       INET DEFAULT inet_client_addr(),
+    old_data        JSONB,
+    new_data        JSONB,
+    changed_fields  JSONB
+);
+
+CREATE OR REPLACE FUNCTION public.fn_pagila_audit_jsonb_diff()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_old  JSONB := NULL;
+    v_new  JSONB := NULL;
+    v_diff JSONB := '{}'::JSONB;
+    v_key  TEXT;
+    v_val  JSONB;
+BEGIN
+    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+        v_old := to_jsonb(OLD);
+    END IF;
+
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        v_new := to_jsonb(NEW);
+    END IF;
+
+    IF TG_OP = 'UPDATE' THEN
+        FOR v_key, v_val IN SELECT * FROM jsonb_each(v_new)
+        LOOP
+            -- Ignorar last_update para ver si hubo cambios reales de negocio
+            IF v_key <> 'last_update' AND (v_old -> v_key IS DISTINCT FROM v_val) THEN
+                v_diff := v_diff || jsonb_build_object(
+                    v_key, jsonb_build_object('before', v_old -> v_key, 'after', v_val)
+                );
+            END IF;
+        END LOOP;
+    END IF;
+
+    INSERT INTO public.pagila_audit_forense_jsonb (
+        table_name, operation, old_data, new_data, changed_fields
+    ) VALUES (
+        TG_TABLE_NAME, TG_OP, v_old, v_new,
+        CASE WHEN TG_OP = 'UPDATE' THEN v_diff ELSE NULL END
+    );
+
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_99_pagila_audit_film ON public.film;
+CREATE TRIGGER trg_99_pagila_audit_film
+AFTER UPDATE OF rental_rate, replacement_cost, rating OR DELETE ON public.film
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_audit_jsonb_diff();
+
+DROP TRIGGER IF EXISTS trg_99_pagila_audit_payment ON public.payment;
+CREATE TRIGGER trg_99_pagila_audit_payment
+AFTER INSERT OR UPDATE OR DELETE ON public.payment
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_audit_jsonb_diff();
+```
+
+---
+
+#### Patrón Pagila 2: Mantenimiento Automático de Tabla Resumen Desnormalizada (`store_category_revenue_summary`)
+Consultar en tiempo real la recaudación por tienda (`store_id`) y categoría de película (`category_id`) en `Pagila` exige unir `payment -> rental -> inventory -> film_category -> category`. Mediante un trigger `AFTER INSERT OR UPDATE OR DELETE ON payment`, mantenemos sincronizada al milisegundo la tabla resumen `store_category_revenue_summary` usando `INSERT ... ON CONFLICT DO UPDATE` (Upsert incremental):
+
+```sql
+-- ============================================================================
+-- PAGILA PATRÓN 2: TABLA RESUMEN DE INGRESOS POR TIENDA Y CATEGORÍA EN TIEMPO REAL
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.store_category_revenue_summary (
+    store_id       INTEGER NOT NULL,
+    category_id    INTEGER NOT NULL,
+    category_name  TEXT NOT NULL,
+    payment_count  BIGINT NOT NULL DEFAULT 0,
+    total_revenue  NUMERIC(14,2) NOT NULL DEFAULT 0.00,
+    last_refreshed TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (store_id, category_id)
+);
+
+CREATE OR REPLACE FUNCTION public.fn_pagila_sync_revenue_summary()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_rental_id   INTEGER;
+    v_store_id    INTEGER;
+    v_category_id INTEGER;
+    v_cat_name    TEXT;
+    v_delta_amt   NUMERIC(14,2) := 0.00;
+    v_delta_cnt   INTEGER := 0;
+BEGIN
+    v_rental_id := COALESCE(NEW.rental_id, OLD.rental_id);
+
+    IF v_rental_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    -- Resolver tienda y categoría a partir del alquiler (rental -> inventory -> film_category -> category)
+    SELECT i.store_id, fc.category_id, c.name
+      INTO v_store_id, v_category_id, v_cat_name
+      FROM public.rental r
+      JOIN public.inventory i      ON i.inventory_id = r.inventory_id
+      JOIN public.film_category fc ON fc.film_id = i.film_id
+      JOIN public.category c       ON c.category_id = fc.category_id
+     WHERE r.rental_id = v_rental_id
+     LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    IF TG_OP = 'INSERT' THEN
+        v_delta_amt := NEW.amount;
+        v_delta_cnt := 1;
+    ELSIF TG_OP = 'UPDATE' THEN
+        v_delta_amt := NEW.amount - OLD.amount;
+        v_delta_cnt := 0;
+    ELSIF TG_OP = 'DELETE' THEN
+        v_delta_amt := -OLD.amount;
+        v_delta_cnt := -1;
+    END IF;
+
+    INSERT INTO public.store_category_revenue_summary (
+        store_id, category_id, category_name, payment_count, total_revenue, last_refreshed
+    ) VALUES (
+        v_store_id, v_category_id, v_cat_name, GREATEST(0, v_delta_cnt), GREATEST(0.00, v_delta_amt), NOW()
+    )
+    ON CONFLICT (store_id, category_id) DO UPDATE
+       SET payment_count  = GREATEST(0, public.store_category_revenue_summary.payment_count + EXCLUDED.payment_count),
+           total_revenue  = GREATEST(0.00, public.store_category_revenue_summary.total_revenue + v_delta_amt),
+           last_refreshed = NOW();
+
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_02_pagila_sync_revenue ON public.payment;
+CREATE TRIGGER trg_02_pagila_sync_revenue
+AFTER INSERT OR UPDATE OR DELETE ON public.payment
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_sync_revenue_summary();
+```
+
+---
+
+#### Patrón Pagila 3: Protección de Borrado Lógico (*Soft Delete*) en `customer` (`BEFORE DELETE`)
+En `Pagila`, un cliente (`customer`) posee decenas de alquileres (`rental`) y pagos (`payment`) históricos. Eliminar físicamente un cliente destruiría la trazabilidad financiera o fallaría por restricción de clave foránea. Con un trigger `BEFORE DELETE`, interceptamos la orden de borrado, desactivamos al cliente (`activebool = FALSE`, `active = 0`) y retornamos `NULL`:
+
+```sql
+-- ============================================================================
+-- PAGILA PATRÓN 3: SOFT DELETE AUTOMÁTICO EN CUSTOMER
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.fn_pagila_soft_delete_customer()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Verificar si el cliente tiene alquileres abiertos sin devolver
+    IF EXISTS (
+        SELECT 1 FROM public.rental
+         WHERE customer_id = OLD.customer_id
+           AND return_date IS NULL
+    ) THEN
+        RAISE EXCEPTION 'BLOQUEO DE BAJA: El cliente ID % (%) tiene películas pendientes de devolución.',
+            OLD.customer_id, OLD.first_name || ' ' || OLD.last_name
+            USING ERRCODE = 'P0040';
+    END IF;
+
+    UPDATE public.customer
+       SET activebool  = FALSE,
+           active      = 0,
+           last_update = NOW()
+     WHERE customer_id = OLD.customer_id;
+
+    RAISE NOTICE 'SOFT DELETE PAGILA: Cliente ID % (%) marcado como inactivo (activebool=false, active=0).',
+        OLD.customer_id, OLD.first_name || ' ' || OLD.last_name;
+
+    RETURN NULL; -- Cancela la eliminación física
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_pagila_soft_delete_customer ON public.customer;
+CREATE TRIGGER trg_01_pagila_soft_delete_customer
+BEFORE DELETE ON public.customer
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_soft_delete_customer();
+```
+
+---
+
+#### Patrón Pagila 4: Trigger `INSTEAD OF INSERT` sobre la Vista `customer_list` de Pagila
+La base `Pagila` incluye la vista nativa `customer_list` (`id`, `name`, `address`, `zip code`, `phone`, `city`, `country`, `notes`, `sid`), que une 4 tablas (`customer`, `address`, `city`, `country`). Gracias a un trigger `INSTEAD OF INSERT`, permitimos registrar un cliente completo insertando una sola fila en `customer_list`:
+
+```sql
+-- ============================================================================
+-- PAGILA PATRÓN 4: INSTEAD OF INSERT SOBRE LA VISTA NATIVA customer_list
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.fn_pagila_instead_of_customer_list()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_country_id INTEGER;
+    v_city_id    INTEGER;
+    v_address_id INTEGER;
+    v_first_name TEXT;
+    v_last_name  TEXT;
+BEGIN
+    -- 1. Separar el nombre completo ('NOMBRE APELLIDO') en first_name y last_name
+    v_first_name := split_part(TRIM(NEW.name), ' ', 1);
+    v_last_name  := COALESCE(NULLIF(SUBSTRING(TRIM(NEW.name) FROM POSITION(' ' IN TRIM(NEW.name)) + 1), ''), 'SIN_APELLIDO');
+
+    -- 2. Buscar o crear el país (country)
+    SELECT country_id INTO v_country_id
+      FROM public.country
+     WHERE UPPER(country) = UPPER(TRIM(NEW.country))
+     LIMIT 1;
+
+    IF v_country_id IS NULL THEN
+        INSERT INTO public.country (country, last_update)
+        VALUES (INITCAP(TRIM(NEW.country)), NOW())
+        RETURNING country_id INTO v_country_id;
+    END IF;
+
+    -- 3. Buscar o crear la ciudad (city)
+    SELECT city_id INTO v_city_id
+      FROM public.city
+     WHERE UPPER(city) = UPPER(TRIM(NEW.city))
+       AND country_id = v_country_id
+     LIMIT 1;
+
+    IF v_city_id IS NULL THEN
+        INSERT INTO public.city (city, country_id, last_update)
+        VALUES (INITCAP(TRIM(NEW.city)), v_country_id, NOW())
+        RETURNING city_id INTO v_city_id;
+    END IF;
+
+    -- 4. Crear la dirección (address)
+    INSERT INTO public.address (address, district, city_id, postal_code, phone, last_update)
+    VALUES (NEW.address, INITCAP(TRIM(NEW.city)), v_city_id, NEW."zip code", NEW.phone, NOW())
+    RETURNING address_id INTO v_address_id;
+
+    -- 5. Crear el cliente en customer
+    INSERT INTO public.customer (
+        store_id, first_name, last_name, email, address_id, activebool, create_date, active
+    ) VALUES (
+        COALESCE(NEW.sid, 1),
+        UPPER(v_first_name),
+        UPPER(v_last_name),
+        LOWER(v_first_name || '.' || replace(v_last_name, ' ', '') || '@pagila.org'),
+        v_address_id,
+         COALESCE(NEW.notes = 'active', TRUE),
+        CURRENT_DATE,
+        CASE WHEN COALESCE(NEW.notes, 'active') = 'active' THEN 1 ELSE 0 END
+    )
+    RETURNING customer_id INTO NEW.id;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_instead_of_insert_customer_list ON public.customer_list;
+CREATE TRIGGER trg_instead_of_insert_customer_list
+INSTEAD OF INSERT ON public.customer_list
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_instead_of_customer_list();
+```
+
+---
+
+### B. Patrones Avanzados sobre `Employees` (3,9 Millones de Registros)
+
+En la base `employees`, la tabla `salaries` contiene **2.844.047 filas** históricas donde el salario actual de un empleado se identifica con `to_date = '9999-01-01'`. Cuando Recursos Humanos inserta un nuevo salario vigente (`to_date = '9999-01-01'`), suelen ocurrir dos problemas graves en producción:
+1. Olvidan cerrar el registro vigente anterior (`to_date = NEW.from_date`), dejando al empleado con dos salarios "actuales" simultáneos.
+2. Si un trigger intenta hacer `UPDATE salaries SET to_date = ...` sobre la misma tabla `salaries`, puede disparar recursivamente otros triggers de `salaries`.
+
+A continuación, resolvemos ambos problemas sumando además un **control de incremento máximo permitido (tope del 30% anual)** y control de recursividad con `pg_trigger_depth()`:
+
+```sql
+-- ============================================================================
+-- EMPLOYEES (3.9M FILAS): CIERRE AUTOMÁTICO DE SALARIO PREVIO Y CONTROL DE TOPE
+-- ============================================================================
+CREATE OR REPLACE FUNCTION employees.fn_trg_control_nuevo_salario()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_salario_actual INTEGER;
+    v_from_actual    DATE;
+BEGIN
+    -- Cortar recursividad si este trigger se re-dispara por el UPDATE interno
+    IF pg_trigger_depth() > 1 THEN
+        RETURN NEW;
+    END IF;
+
+    -- Solo actuar cuando se inserta un nuevo salario marcado como vigente ('9999-01-01')
+    IF TG_OP = 'INSERT' AND NEW.to_date = DATE '9999-01-01' THEN
+        SELECT salary, from_date
+          INTO v_salario_actual, v_from_actual
+          FROM employees.salaries
+         WHERE emp_no  = NEW.emp_no
+           AND to_date = DATE '9999-01-01'
+           FOR UPDATE;
+
+        IF FOUND THEN
+            -- Regla 1: El nuevo salario no puede superar en más del 30% al salario vigente
+            IF NEW.salary > ROUND(v_salario_actual * 1.30) THEN
+                RAISE EXCEPTION 'TOPE SALARIAL EXCEDIDO para emp_no %: Salario vigente $%, Nuevo solicitado $% (Máximo permitido +30%% = $%).',
+                    NEW.emp_no, v_salario_actual, NEW.salary, ROUND(v_salario_actual * 1.30)
+                    USING ERRCODE = 'P0050';
+            END IF;
+
+            -- Regla 2: Cerrar automáticamente la vigencia del salario anterior
+            IF NEW.from_date > v_from_actual THEN
+                UPDATE employees.salaries
+                   SET to_date = NEW.from_date
+                 WHERE emp_no    = NEW.emp_no
+                   AND from_date = v_from_actual
+                   AND to_date   = DATE '9999-01-01';
+            END IF;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_control_nuevo_salario ON employees.salaries;
+CREATE TRIGGER trg_01_control_nuevo_salario
+BEFORE INSERT ON employees.salaries
+FOR EACH ROW
+EXECUTE FUNCTION employees.fn_trg_control_nuevo_salario();
+```
+
+---
+
+### C. Patrón sobre `MusicBrainz`: Integridad Temporal en Relaciones y Conteo Desnormalizado
+
+En `MusicBrainz`, la tabla `l_artist_recording` vincula artistas (`entity0` -> `artist.id`) con grabaciones (`entity1` -> `recording.id`) a través de un registro en la tabla `link` (que almacena `begin_date_year` y `end_date_year`). Implementaremos un trigger que valide que la relación no enlace a un artista eliminado (`edits_pending >= 0`) y mantenga una tabla de caché de alta velocidad `artist_recording_counter` para evitar contar millones de filas en cada carga de perfil del artista:
+
+```sql
+-- ============================================================================
+-- MUSICBRAINZ: CACHÉ DESNORMALIZADO DE GRABACIONES POR ARTISTA EN TIEMPO REAL
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS musicbrainz.artist_recording_counter (
+    artist_id        INTEGER PRIMARY KEY,
+    total_recordings INTEGER NOT NULL DEFAULT 0,
+    last_synced      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION musicbrainz.fn_trg_sync_artist_recording_count()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO musicbrainz.artist_recording_counter (artist_id, total_recordings, last_synced)
+        VALUES (NEW.entity0, 1, NOW())
+        ON CONFLICT (artist_id) DO UPDATE
+           SET total_recordings = musicbrainz.artist_recording_counter.total_recordings + 1,
+               last_synced      = NOW();
+
+        UPDATE musicbrainz.artist
+           SET last_updated = NOW()
+         WHERE id = NEW.entity0;
+
+        RETURN NEW;
+
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE musicbrainz.artist_recording_counter
+           SET total_recordings = GREATEST(0, total_recordings - 1),
+               last_synced      = NOW()
+         WHERE artist_id = OLD.entity0;
+
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_mb_sync_artist_recordings ON musicbrainz.l_artist_recording;
+CREATE TRIGGER trg_01_mb_sync_artist_recordings
+AFTER INSERT OR DELETE ON musicbrainz.l_artist_recording
+FOR EACH ROW
+EXECUTE FUNCTION musicbrainz.fn_trg_sync_artist_recording_count();
+```
+
+---
+
+### D. Taller Práctico Adicional sobre `Pagila`, `Employees` y `MusicBrainz` (5 Retos Avanzados)
+
+#### Reto Real 1 (`Pagila`): Bloqueo de Alquiler de Ejemplar No Devuelto (`BEFORE INSERT ON rental`)
+En `Pagila`, nada impide a nivel de clave foránea que alguien inserte en `rental` un nuevo alquiler para un `inventory_id` que **todavía está alquilado y no ha sido devuelto** (`return_date IS NULL`). Crea un trigger `BEFORE INSERT ON public.rental` que bloquee con `FOR UPDATE` el ejemplar en `inventory` y lance `RAISE EXCEPTION` si existe un alquiler activo sin `return_date` para ese `inventory_id`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 1 (Pagila)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION public.fn_pagila_prevent_double_rental()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_open_rental_id INTEGER;
+BEGIN
+    -- Bloquear el ítem de inventario para serializar intentos concurrentes
+    PERFORM 1
+       FROM public.inventory
+      WHERE inventory_id = NEW.inventory_id
+        FOR UPDATE;
+
+    -- Verificar si el DVD sigue alquilado (return_date IS NULL)
+    SELECT rental_id INTO v_open_rental_id
+      FROM public.rental
+     WHERE inventory_id = NEW.inventory_id
+       AND return_date IS NULL
+     LIMIT 1;
+
+    IF v_open_rental_id IS NOT NULL THEN
+        RAISE EXCEPTION 'EJEMPLAR NO DISPONIBLE: El inventory_id % aún figura alquilado en el rental_id % sin fecha de devolución.',
+            NEW.inventory_id, v_open_rental_id
+            USING ERRCODE = 'P0041';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_pagila_prevent_double_rental ON public.rental;
+CREATE TRIGGER trg_01_pagila_prevent_double_rental
+BEFORE INSERT ON public.rental
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_pagila_prevent_double_rental();
+```
+</details>
+
+---
+
+#### Reto Real 2 (`Pagila`): Cálculo Automático de Recargo por Atraso al Devolver Película (`AFTER UPDATE OF return_date ON rental`)
+Crea un trigger que se dispare cuando `OLD.return_date IS NULL AND NEW.return_date IS NOT NULL` en `public.rental`. Si los días transcurridos entre `NEW.rental_date` y `NEW.return_date` superan el `rental_duration` de la película (`film.rental_duration`), inserta automáticamente en `public.payment` un cobro adicional de `\$1.50` por cada día de atraso.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 2 (Pagila)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION public.fn_pagila_late_fee_on_return()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_rental_duration SMALLINT;
+    v_dias_alquiler   INTEGER;
+    v_dias_atraso     INTEGER;
+    v_recargo         NUMERIC(5,2);
+BEGIN
+    IF OLD.return_date IS NULL AND NEW.return_date IS NOT NULL THEN
+        SELECT f.rental_duration
+          INTO v_rental_duration
+          FROM public.inventory i
+          JOIN public.film f ON f.film_id = i.film_id
+         WHERE i.inventory_id = NEW.inventory_id;
+
+        v_dias_alquiler := EXTRACT(DAY FROM (NEW.return_date - NEW.rental_date))::INTEGER;
+        v_dias_atraso   := v_dias_alquiler - v_rental_duration;
+
+        IF v_dias_atraso > 0 THEN
+            v_recargo := ROUND(v_dias_atraso * 1.50, 2);
+
+            INSERT INTO public.payment (
+                customer_id, staff_id, rental_id, amount, payment_date
+            ) VALUES (
+                NEW.customer_id, NEW.staff_id, NEW.rental_id, v_recargo, NEW.return_date
+            );
+
+            RAISE NOTICE 'RECARGO POR MORA GENERADO: Rental ID % devuelto con % días de atraso. Cobro automático: $%.',
+                NEW.rental_id, v_dias_atraso, v_recargo;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_02_pagila_late_fee ON public.rental;
+CREATE TRIGGER trg_02_pagila_late_fee
+AFTER UPDATE OF return_date ON public.rental
+FOR EACH ROW
+WHEN (OLD.return_date IS NULL AND NEW.return_date IS NOT NULL)
+EXECUTE FUNCTION public.fn_pagila_late_fee_on_return();
+```
+</details>
+
+---
+
+#### Reto Real 3 (`Employees`): Trigger de Sincronización de Transferencia de Departamento (`BEFORE INSERT ON dept_emp`)
+Cuando un empleado de `employees` es transferido a un nuevo departamento insertando una fila en `employees.dept_emp` con `to_date = '9999-01-01'`, crea un trigger que cierre automáticamente su asignación vigente previa en `dept_emp` (`SET to_date = NEW.from_date`) evitando recursividad con `pg_trigger_depth()`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 3 (Employees)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION employees.fn_trg_transferencia_departamento()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF pg_trigger_depth() > 1 THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.to_date = DATE '9999-01-01' THEN
+        UPDATE employees.dept_emp
+           SET to_date = NEW.from_date
+         WHERE emp_no  = NEW.emp_no
+           AND to_date = DATE '9999-01-01'
+           AND dept_no <> NEW.dept_no;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_transferencia_depto ON employees.dept_emp;
+CREATE TRIGGER trg_01_transferencia_depto
+BEFORE INSERT ON employees.dept_emp
+FOR EACH ROW
+EXECUTE FUNCTION employees.fn_trg_transferencia_departamento();
+```
+</details>
+
+---
+
+#### Reto Real 4 (`Employees`): Auditoría Forense `JSONB` de Cambios de Cargo Directivo (`dept_manager`)
+Crea una tabla `employees.audit_managers_jsonb` y un trigger `AFTER INSERT OR UPDATE OR DELETE ON employees.dept_manager` que registre cualquier cambio en las jefaturas de departamento almacenando `to_jsonb(OLD)` y `to_jsonb(NEW)`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 4 (Employees)</summary>
+
+```sql
+CREATE TABLE IF NOT EXISTS employees.audit_managers_jsonb (
+    log_id     BIGSERIAL PRIMARY KEY,
+    logged_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    txid       BIGINT NOT NULL DEFAULT txid_current(),
+    op         VARCHAR(10) NOT NULL,
+    db_user    TEXT NOT NULL DEFAULT current_user,
+    old_record JSONB,
+    new_record JSONB
+);
+
+CREATE OR REPLACE FUNCTION employees.fn_trg_audit_dept_manager()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO employees.audit_managers_jsonb (op, old_record, new_record)
+    VALUES (
+        TG_OP,
+        CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD) ELSE NULL END,
+        CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN to_jsonb(NEW) ELSE NULL END
+    );
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_99_audit_dept_manager ON employees.dept_manager;
+CREATE TRIGGER trg_99_audit_dept_manager
+AFTER INSERT OR UPDATE OR DELETE ON employees.dept_manager
+FOR EACH ROW
+EXECUTE FUNCTION employees.fn_trg_audit_dept_manager();
+```
+</details>
+
+---
+
+#### Reto Real 5 (`MusicBrainz`): Validación de Fechas Cronológicas en `artist` (`BEFORE INSERT OR UPDATE`)
+En `musicbrainz.artist`, un artista o banda tiene columnas de inicio (`begin_date_year`, `begin_date_month`, `begin_date_day`) y fin (`end_date_year`, `end_date_month`, `end_date_day`). Crea un trigger `BEFORE INSERT OR UPDATE ON musicbrainz.artist` que impida guardar un registro donde `end_date_year < begin_date_year`, active automáticamente `ended = TRUE` cuando se especifique un `end_date_year`, y actualice `last_updated = NOW()`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 5 (MusicBrainz)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION musicbrainz.fn_trg_validate_artist_dates()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.begin_date_year IS NOT NULL
+       AND NEW.end_date_year IS NOT NULL
+       AND NEW.end_date_year < NEW.begin_date_year THEN
+        RAISE EXCEPTION 'ERROR CRONOLÓGICO MUSICBRAINZ: El año de finalización (%) del artista "%" no puede ser anterior al año de inicio (%).',
+            NEW.end_date_year, NEW.name, NEW.begin_date_year
+            USING ERRCODE = 'P0060';
+    END IF;
+
+    IF NEW.end_date_year IS NOT NULL THEN
+        NEW.ended := TRUE;
+    END IF;
+
+    NEW.last_updated := NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_mb_validate_artist_dates ON musicbrainz.artist;
+CREATE TRIGGER trg_01_mb_validate_artist_dates
+BEFORE INSERT OR UPDATE ON musicbrainz.artist
+FOR EACH ROW
+EXECUTE FUNCTION musicbrainz.fn_trg_validate_artist_dates();
+```
+</details>
+
+---
+
 ## 📊 8. Rúbrica de Evaluación y Autoevaluación
 
 ### 8.1. Rúbrica Oficial del Taller Práctico (APECD — 10 Puntos)

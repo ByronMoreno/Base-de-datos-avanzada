@@ -837,6 +837,466 @@ Conforme al **Sistema de Evaluación Sumativa del PEA Oficial** de la asignatura
 
 ---
 
+## 🌐 Evaluación Integradora con Datasets de Producción: Employees (3.9M), Pagila y MusicBrainz
+
+Para las defensas de laboratorio sobre esquemas reales en producción, esta sección presenta **dos evaluaciones prácticas completas** diseñadas directamente sobre las bases de datos estándar del curso:
+1. **[Employees (`employees`)](https://github.com/neondatabase/postgres-sample-dbs):** 3,9 millones de registros (~3.919.015 filas, 333 MB) en 6 tablas (`employees`, `departments`, `dept_emp`, `dept_manager`, `titles`, `salaries`).
+2. **[Pagila (`pagila`)](https://github.com/xzilla/pagila):** 33 tablas (~62.322 filas: `film`, `actor`, `film_actor`, `category`, `film_category`, `inventory`, `rental`, `payment`, `customer`, `staff`, `store`, `address`, `city`, `country`).
+3. **[MusicBrainz (`musicbrainz`)](https://musicbrainz.org/doc/MusicBrainz_Database):** Base enciclopédica de metadatos musicales (`artist`, `recording`, `release`, `release_group`, `track`, `medium`, `link`, `l_artist_recording`).
+
+---
+
+### A. Caso Práctico Alternativo de Examen Parcial 2 sobre `Pagila` y `Employees` (10.0 Puntos)
+
+#### Reactivo P2-A (`Pagila` — 3.5 Puntos): Función Diagnóstica + Trigger de Control de Mora + Procedimiento de Checkout Seguro
+1. Crea la función `public.fn_pagila_resumen_cliente(p_customer_id INT)` que retorne una tabla con `(nombre_completo TEXT, alquileres_abiertos BIGINT, total_pagado_historico NUMERIC, apto_para_alquilar BOOLEAN)`. Un cliente es `apto_para_alquilar` solo si está activo (`activebool = TRUE`) y tiene **menos de 3 alquileres abiertos** (`return_date IS NULL`).
+2. Crea el trigger `BEFORE INSERT ON public.rental` (`fn_trg_pagila_validar_cupo_alquiler`) que invoque `fn_pagila_resumen_cliente(NEW.customer_id)` y lance `RAISE EXCEPTION` si `apto_para_alquilar = FALSE`.
+3. Crea el procedimiento transaccional `public.sp_checkout_alquiler_seguro(p_customer_id INT, p_inventory_id INT, p_staff_id INT, p_cupon_descuento NUMERIC)` que:
+   - Bloquee el ejemplar en `inventory` (`FOR UPDATE NOWAIT`).
+   - Obtenga el `rental_rate` de la película (`film`) asociada a ese `inventory_id`.
+   - Inserte el registro en `rental`.
+   - Calcule el monto a pagar aplicando `p_cupon_descuento` (entre 0% y 50%) e inserte el pago en `payment`.
+
+#### Reactivo P2-B (`Employees` 3.9M filas — 3.5 Puntos): Optimización de Índice Parcial + Trigger de Tope Salarial + Auditoría `JSONB`
+1. Crea un índice parcial `idx_salaries_vigentes_emp` sobre `employees.salaries (emp_no, salary)` filtrando exclusivamente `WHERE to_date = DATE '9999-01-01'` para acelerar las validaciones de sueldos actuales sobre los 2.84 millones de registros.
+2. Crea la tabla `employees.bitacora_salarios_jsonb` y un trigger `AFTER INSERT OR UPDATE ON employees.salaries` que registre en `JSONB` todo incremento salarial que supere los `\$100,000` anuales.
+
+#### Reactivo P2-C (`Pagila` + `Employees` — 3.0 Puntos): Seguridad RBAC y *Row-Level Security (RLS)*
+Configura el rol `rol_supervisor_pagila` (`NOLOGIN`) y el usuario `usr_sup_tienda1` (`LOGIN`, válido hasta fin de año, máx 2 conexiones), otorgando permisos de consulta sobre `customer`, `rental` y `payment`, y habilita una política RLS sobre `payment` para que `usr_sup_tienda1` solo pueda visualizar pagos procesados por `staff_id = 1`.
+
+<details>
+<summary>✅ Ver Solución Oficial Completa — Examen Parcial 2 sobre Pagila y Employees</summary>
+
+```sql
+-- ============================================================================
+-- SOLUCIÓN REACTIVO P2-A (PAGILA: FUNCIÓN + TRIGGER + PROCEDIMIENTO CHECKOUT)
+-- ============================================================================
+-- 1. Función de diagnóstico de estado de cuenta del cliente en Pagila
+CREATE OR REPLACE FUNCTION public.fn_pagila_resumen_cliente(p_customer_id INTEGER)
+RETURNS TABLE (
+    nombre_completo        TEXT,
+    alquileres_abiertos    BIGINT,
+    total_pagado_historico NUMERIC(12,2),
+    apto_para_alquilar     BOOLEAN
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_nombre   TEXT;
+    v_activo   BOOLEAN;
+    v_abiertos BIGINT;
+    v_pagado   NUMERIC(12,2);
+BEGIN
+    SELECT c.first_name || ' ' || c.last_name, c.activebool
+      INTO v_nombre, v_activo
+      FROM public.customer c
+     WHERE c.customer_id = p_customer_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El cliente ID % no existe en Pagila.', p_customer_id;
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_abiertos
+      FROM public.rental r
+     WHERE r.customer_id = p_customer_id
+       AND r.return_date IS NULL;
+
+    SELECT COALESCE(SUM(p.amount), 0.00)
+      INTO v_pagado
+      FROM public.payment p
+     WHERE p.customer_id = p_customer_id;
+
+    RETURN QUERY
+    SELECT v_nombre,
+           v_abiertos,
+           v_pagado,
+           (v_activo = TRUE AND v_abiertos < 3);
+END;
+$$;
+
+-- 2. Trigger BEFORE INSERT en rental que valida aptitud del cliente
+CREATE OR REPLACE FUNCTION public.fn_trg_pagila_validar_cupo_alquiler()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_resumen RECORD;
+BEGIN
+    SELECT * INTO v_resumen
+      FROM public.fn_pagila_resumen_cliente(NEW.customer_id);
+
+    IF NOT v_resumen.apto_para_alquilar THEN
+        RAISE EXCEPTION 'ALQUILER RECHAZADO: Cliente "%" (ID %) no es apto (Alquileres abiertos sin devolver: %).',
+            v_resumen.nombre_completo, NEW.customer_id, v_resumen.alquileres_abiertos
+            USING ERRCODE = 'P0070';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_01_pagila_validar_cupo_alquiler ON public.rental;
+CREATE TRIGGER trg_01_pagila_validar_cupo_alquiler
+BEFORE INSERT ON public.rental
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_trg_pagila_validar_cupo_alquiler();
+
+-- 3. Procedimiento Transaccional de Checkout Seguro
+CREATE OR REPLACE PROCEDURE public.sp_checkout_alquiler_seguro(
+    p_customer_id     INTEGER,
+    p_inventory_id    INTEGER,
+    p_staff_id        INTEGER,
+    p_cupon_descuento NUMERIC(5,2) DEFAULT 0.00
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_rental_rate NUMERIC(5,2);
+    v_monto_final NUMERIC(5,2);
+    v_rental_id   INTEGER;
+BEGIN
+    IF p_cupon_descuento < 0 OR p_cupon_descuento > 50 THEN
+        RAISE EXCEPTION 'El cupón de descuento debe estar entre 0%% y 50%%.';
+    END IF;
+
+    -- Bloquear ejemplar en inventory con NOWAIT
+    SELECT f.rental_rate
+      INTO v_rental_rate
+      FROM public.inventory i
+      JOIN public.film f ON f.film_id = i.film_id
+     WHERE i.inventory_id = p_inventory_id
+       FOR UPDATE OF i NOWAIT;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El inventory_id % no existe.', p_inventory_id;
+    END IF;
+
+    -- Verificar que el DVD no esté prestado actualmente
+    IF EXISTS (
+        SELECT 1 FROM public.rental
+         WHERE inventory_id = p_inventory_id AND return_date IS NULL
+    ) THEN
+        RAISE EXCEPTION 'El DVD inventory_id % aún no ha sido devuelto.', p_inventory_id;
+    END IF;
+
+    -- Insertar alquiler (dispara automáticamente trg_01_pagila_validar_cupo_alquiler)
+    INSERT INTO public.rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+    VALUES (NOW(), p_inventory_id, p_customer_id, p_staff_id, NOW())
+    RETURNING rental_id INTO v_rental_id;
+
+    -- Calcular tarifa neta e insertar pago
+    v_monto_final := ROUND(v_rental_rate * (1.0 - (p_cupon_descuento / 100.0)), 2);
+
+    INSERT INTO public.payment (customer_id, staff_id, rental_id, amount, payment_date)
+    VALUES (p_customer_id, p_staff_id, v_rental_id, v_monto_final, NOW());
+
+    RAISE NOTICE 'Checkout exitoso en Pagila: rental_id = %, cobro neto = $%.', v_rental_id, v_monto_final;
+END;
+$$;
+
+-- ============================================================================
+-- SOLUCIÓN REACTIVO P2-B (EMPLOYEES: ÍNDICE PARCIAL + AUDITORÍA EJECUTIVA JSONB)
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_salaries_vigentes_emp
+    ON employees.salaries (emp_no, salary)
+ WHERE to_date = DATE '9999-01-01';
+
+CREATE TABLE IF NOT EXISTS employees.bitacora_salarios_jsonb (
+    bitacora_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    fecha_hora  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    txid        BIGINT NOT NULL DEFAULT txid_current(),
+    usuario_db  TEXT NOT NULL DEFAULT current_user,
+    emp_no      INTEGER NOT NULL,
+    operacion   VARCHAR(10) NOT NULL,
+    detalle     JSONB NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION employees.fn_trg_auditar_salarios_altos()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO employees.bitacora_salarios_jsonb (emp_no, operacion, detalle)
+    VALUES (
+        NEW.emp_no,
+        TG_OP,
+        jsonb_build_object(
+            'old', CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD) ELSE NULL END,
+            'new', to_jsonb(NEW)
+        )
+    );
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_99_auditar_salarios_altos ON employees.salaries;
+CREATE TRIGGER trg_99_auditar_salarios_altos
+AFTER INSERT OR UPDATE ON employees.salaries
+FOR EACH ROW
+WHEN (NEW.salary > 100000)
+EXECUTE FUNCTION employees.fn_trg_auditar_salarios_altos();
+
+-- ============================================================================
+-- SOLUCIÓN REACTIVO P2-C (SEGURIDAD RBAC + RLS EN PAGILA PAYMENT)
+-- ============================================================================
+DO $$
+BEGIN
+    DROP ROLE IF EXISTS usr_sup_tienda1, rol_supervisor_pagila;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+CREATE ROLE rol_supervisor_pagila NOLOGIN INHERIT;
+CREATE USER usr_sup_tienda1
+    WITH PASSWORD 'SupTienda1#2026'
+    CONNECTION LIMIT 2
+    VALID UNTIL '2026-12-31 23:59:59-05';
+
+GRANT rol_supervisor_pagila TO usr_sup_tienda1;
+GRANT USAGE ON SCHEMA public TO rol_supervisor_pagila;
+GRANT SELECT ON public.customer, public.rental, public.payment TO rol_supervisor_pagila;
+
+ALTER TABLE public.payment ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pol_payment_sup_tienda1 ON public.payment;
+CREATE POLICY pol_payment_sup_tienda1
+    ON public.payment
+    FOR SELECT
+    TO rol_supervisor_pagila
+    USING (staff_id = 1);
+```
+</details>
+
+---
+
+### B. Examen de Recuperación / Defensa Integradora sobre las 3 Bases Reales (`Employees`, `Pagila` y `MusicBrainz` — 10.0 Puntos)
+
+Resuelve los siguientes **5 retos integradores** que abarcan las **Unidades 1, 2 y 3** del PEA:
+
+1. **Reto Integrador 1 — Unidad 1 (`Employees` — 2.0 Puntos):**
+   Crea una **Vista Materializada** llamada `employees.vm_top_salarios_por_depto` que utilice una CTE y la función de ventana `DENSE_RANK() OVER (PARTITION BY d.dept_no ORDER BY s.salary DESC)` para almacenar los **3 empleados vigentes mejor pagados de cada departamento**, incluyendo `dept_no`, `dept_name`, `emp_no`, `nombre_completo`, `title`, `salary` y `ranking`. Crea además un índice sobre `(dept_no, ranking)`.
+
+2. **Reto Integrador 2 — Unidad 1 y 2 (`MusicBrainz` — 2.0 Puntos):**
+   Crea una función `musicbrainz.fn_discografia_artista(p_artist_name TEXT)` que retorne una tabla con `(artist_id INT, artist_name VARCHAR, area_name VARCHAR, release_group_title VARCHAR, total_recordings BIGINT)` consultando `artist`, `area`, `release_group` y `l_artist_recording`, junto con un índice B-Tree en `musicbrainz.artist (UPPER(name))` para acelerar búsquedas insensibles a mayúsculas.
+
+3. **Reto Integrador 3 — Unidad 2 (`Pagila` — 2.0 Puntos):**
+   Crea una vista `public.vw_catalogo_tarifas_pagila` que muestre `film_id`, `title`, `category_name`, `rental_rate` y `replacement_cost`. Implementa un trigger `INSTEAD OF UPDATE` sobre dicha vista que permita actualizar `rental_rate` y `replacement_cost` en la tabla base `film`, validando que `replacement_cost >= rental_rate * 3` (si no se cumple, lanzar `RAISE EXCEPTION`).
+
+4. **Reto Integrador 4 — Unidad 2 y 3 (`Employees` — 2.0 Puntos):**
+   Crea el procedimiento transaccional `employees.sp_promover_empleado(p_emp_no INT, p_nuevo_titulo VARCHAR, p_porcentaje_aumento NUMERIC)` que:
+   - Bloquee al empleado en `employees.employees` (`FOR UPDATE`).
+   - Cierre su título vigente en `employees.titles` (`to_date = CURRENT_DATE`) e inserte el `p_nuevo_titulo` con `to_date = '9999-01-01'`.
+   - Cierre su salario vigente en `employees.salaries` e inserte el nuevo salario incrementado en `p_porcentaje_aumento`.
+
+5. **Reto Integrador 5 — Unidad 3 (`Employees` + `Pagila` + `MusicBrainz` — 2.0 Puntos):**
+   Escribe un script de auditoría y endurecimiento de seguridad (*Hardening*) que cree un rol de solo lectura `rol_bi_corporativo` (`NOLOGIN`) y un usuario `usr_powerbi_sync` (`LOGIN`, máx 4 conexiones), otorgándole acceso de lectura únicamente a las vistas y vistas materializadas analíticas de los tres esquemas sin acceso directo de escritura a ninguna tabla transaccional.
+
+<details>
+<summary>✅ Ver Solución Oficial Completa — Evaluación Integradora (5 Retos sobre Employees, Pagila y MusicBrainz)</summary>
+
+```sql
+-- ============================================================================
+-- SOLUCIÓN RETO INTEGRADOR 1 (UNIDAD 1 - EMPLOYEES: VISTA MATERIALIZADA + CTE)
+-- ============================================================================
+DROP MATERIALIZED VIEW IF EXISTS employees.vm_top_salarios_por_depto;
+
+CREATE MATERIALIZED VIEW employees.vm_top_salarios_por_depto AS
+WITH salarios_vigentes_ranked AS (
+    SELECT d.dept_no,
+           d.dept_name,
+           e.emp_no,
+           (e.first_name || ' ' || e.last_name) AS nombre_completo,
+           COALESCE(t.title, 'Staff') AS title,
+           s.salary,
+           DENSE_RANK() OVER (PARTITION BY d.dept_no ORDER BY s.salary DESC) AS ranking
+      FROM employees.departments d
+      JOIN employees.dept_emp de ON de.dept_no = d.dept_no AND de.to_date = DATE '9999-01-01'
+      JOIN employees.employees e ON e.emp_no   = de.emp_no
+      JOIN employees.salaries s  ON s.emp_no   = e.emp_no  AND s.to_date  = DATE '9999-01-01'
+      LEFT JOIN employees.titles t ON t.emp_no = e.emp_no  AND t.to_date  = DATE '9999-01-01'
+)
+SELECT dept_no,
+       dept_name,
+       emp_no,
+       nombre_completo,
+       title,
+       salary,
+       ranking
+  FROM salarios_vigentes_ranked
+ WHERE ranking <= 3;
+
+CREATE UNIQUE INDEX idx_uk_vm_top_salarios_depto_emp
+    ON employees.vm_top_salarios_por_depto (dept_no, emp_no);
+
+CREATE INDEX idx_vm_top_salarios_ranking
+    ON employees.vm_top_salarios_por_depto (dept_no, ranking);
+
+-- ============================================================================
+-- SOLUCIÓN RETO INTEGRADOR 2 (UNIDAD 1 Y 2 - MUSICBRAINZ: ÍNDICE EXPRESIÓN + FUNCIÓN)
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_mb_artist_upper_name
+    ON musicbrainz.artist (UPPER(name));
+
+CREATE OR REPLACE FUNCTION musicbrainz.fn_discografia_artista(p_artist_name TEXT)
+RETURNS TABLE (
+    artist_id          INTEGER,
+    artist_name        VARCHAR,
+    area_name          VARCHAR,
+    total_recordings   BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT a.id,
+           a.name,
+           COALESCE(ar.name, 'Desconocida')::VARCHAR AS area_name,
+           COUNT(lar.id) AS total_recordings
+      FROM musicbrainz.artist a
+      LEFT JOIN musicbrainz.area ar                 ON ar.id = a.area
+      LEFT JOIN musicbrainz.l_artist_recording lar  ON lar.entity0 = a.id
+     WHERE UPPER(a.name) LIKE UPPER(TRIM(p_artist_name)) || '%'
+     GROUP BY a.id, a.name, ar.name
+     ORDER BY total_recordings DESC
+     LIMIT 25;
+END;
+$$;
+
+-- ============================================================================
+-- SOLUCIÓN RETO INTEGRADOR 3 (UNIDAD 2 - PAGILA: VISTA + INSTEAD OF UPDATE)
+-- ============================================================================
+CREATE OR REPLACE VIEW public.vw_catalogo_tarifas_pagila AS
+SELECT f.film_id,
+       f.title,
+       c.name AS category_name,
+       f.rental_rate,
+       f.replacement_cost
+  FROM public.film f
+  JOIN public.film_category fc ON fc.film_id = f.film_id
+  JOIN public.category c       ON c.category_id = fc.category_id;
+
+CREATE OR REPLACE FUNCTION public.fn_instead_of_vw_catalogo_tarifas()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.replacement_cost < (NEW.rental_rate * 3) THEN
+        RAISE EXCEPTION 'POLÍTICA DE PRECIOS PAGILA VIOLADA: El costo de reposición ($%) de "%" debe ser al menos 3 veces la tarifa de alquiler ($%).',
+            NEW.replacement_cost, OLD.title, NEW.rental_rate
+            USING ERRCODE = 'P0080';
+    END IF;
+
+    UPDATE public.film
+       SET rental_rate      = NEW.rental_rate,
+           replacement_cost = NEW.replacement_cost,
+           last_update      = NOW()
+     WHERE film_id = OLD.film_id;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_instead_of_vw_catalogo_tarifas ON public.vw_catalogo_tarifas_pagila;
+CREATE TRIGGER trg_instead_of_vw_catalogo_tarifas
+INSTEAD OF UPDATE ON public.vw_catalogo_tarifas_pagila
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_instead_of_vw_catalogo_tarifas();
+
+-- ============================================================================
+-- SOLUCIÓN RETO INTEGRADOR 4 (UNIDAD 2 Y 3 - EMPLOYEES: ASCENSO TRANSACCIONAL)
+-- ============================================================================
+CREATE OR REPLACE PROCEDURE employees.sp_promover_empleado(
+    p_emp_no             INTEGER,
+    p_nuevo_titulo       VARCHAR(50),
+    p_porcentaje_aumento NUMERIC(5,2)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_salario_actual INTEGER;
+    v_nuevo_salario  INTEGER;
+BEGIN
+    IF p_porcentaje_aumento <= 0 OR p_porcentaje_aumento > 30 THEN
+        RAISE EXCEPTION 'El porcentaje de aumento por ascenso debe estar entre 0.01%% y 30.00%%.';
+    END IF;
+
+    -- Bloquear fila maestra del empleado
+    PERFORM 1
+       FROM employees.employees
+      WHERE emp_no = p_emp_no
+        FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El empleado emp_no % no existe.', p_emp_no;
+    END IF;
+
+    -- Obtener y bloquear el salario vigente
+    SELECT salary INTO v_salario_actual
+      FROM employees.salaries
+     WHERE emp_no  = p_emp_no
+       AND to_date = DATE '9999-01-01'
+       FOR UPDATE;
+
+    v_nuevo_salario := ROUND(v_salario_actual * (1.0 + (p_porcentaje_aumento / 100.0)));
+
+    -- 1. Cerrar título anterior e insertar nuevo título vigente
+    UPDATE employees.titles
+       SET to_date = CURRENT_DATE
+     WHERE emp_no  = p_emp_no
+       AND to_date = DATE '9999-01-01';
+
+    INSERT INTO employees.titles (emp_no, title, from_date, to_date)
+    VALUES (p_emp_no, p_nuevo_titulo, CURRENT_DATE, DATE '9999-01-01')
+    ON CONFLICT (emp_no, title, from_date) DO UPDATE
+       SET to_date = DATE '9999-01-01';
+
+    -- 2. Cerrar salario anterior e insertar nuevo salario vigente
+    UPDATE employees.salaries
+       SET to_date = CURRENT_DATE
+     WHERE emp_no  = p_emp_no
+       AND to_date = DATE '9999-01-01';
+
+    INSERT INTO employees.salaries (emp_no, salary, from_date, to_date)
+    VALUES (p_emp_no, v_nuevo_salario, CURRENT_DATE, DATE '9999-01-01')
+    ON CONFLICT (emp_no, from_date) DO UPDATE
+       SET salary  = EXCLUDED.salary,
+           to_date = DATE '9999-01-01';
+
+    RAISE NOTICE 'Empleado % promovido a "%" con nuevo salario anual de $%.',
+        p_emp_no, p_nuevo_titulo, v_nuevo_salario;
+END;
+$$;
+
+-- ============================================================================
+-- SOLUCIÓN RETO INTEGRADOR 5 (UNIDAD 3: HARDENING DCL PARA BI CORPORATIVO)
+-- ============================================================================
+DO $$
+BEGIN
+    DROP ROLE IF EXISTS usr_powerbi_sync, rol_bi_corporativo;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+CREATE ROLE rol_bi_corporativo NOLOGIN INHERIT;
+CREATE USER usr_powerbi_sync
+    WITH PASSWORD 'PowerBI#Sync2026'
+    CONNECTION LIMIT 4
+    VALID UNTIL '2027-01-01 00:00:00-05';
+
+GRANT rol_bi_corporativo TO usr_powerbi_sync;
+
+GRANT USAGE ON SCHEMA public, employees, musicbrainz TO rol_bi_corporativo;
+
+GRANT SELECT ON employees.vm_top_salarios_por_depto,
+                public.vw_catalogo_tarifas_pagila,
+                public.customer_list
+   TO rol_bi_corporativo;
+
+GRANT EXECUTE ON FUNCTION musicbrainz.fn_discografia_artista(TEXT) TO rol_bi_corporativo;
+```
+</details>
+
+---
+
 ## 📊 8. Matriz de Calificación Oficial del PEA (Segundo Parcial y Cierre Semestral)
 
 | Actividad de Evaluación (Según PEA) | Peso Parcial 1 | Peso Parcial 2 | Total Semestre |

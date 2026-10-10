@@ -830,6 +830,501 @@ Alineados a la habilidad blanda del PEA (*"Realiza ejercicios extras de Funcione
 
 ---
 
+## 🌐 Laboratorio con Bases de Datos Reales: Triggers Nativos y Personalizados en Pagila, Employees y MusicBrainz
+
+En este laboratorio avanzado aplicaremos nuestros conocimientos de arquitectura de triggers directamente sobre las **3 bases de datos reales del curso** (`pagila`, `employees` y `musicbrainz`). Aprenderemos primero a inspeccionar los triggers que vienen de fábrica en `Pagila`, y luego diseñaremos nuevos disparadores para resolver problemas críticos de negocio en los tres motores.
+
+```mermaid
+flowchart TD
+    subgraph PagilaTrg["1. Base de Datos Pagila"]
+        PT1["Triggers Nativos:\nlast_updated() en 14 tablas\nfilm_fulltext_trigger (TSVECTOR)"]
+        PT2["Nuevos Triggers:\nBEFORE INSERT ON rental (Stock + Cliente Activo)\nAFTER INSERT ON payment (Auditoría de Saldo)"]
+        PT1 --> PT2
+    end
+
+    subgraph EmpTrg["2. Base de Datos Employees (3.9M filas)"]
+        ET1["Trigger Temporal de Nómina:\nBEFORE INSERT ON salaries\n(Cierra salario vigente 9999-01-01 previo)"]
+    end
+
+    subgraph MBTrg["3. Base de Datos MusicBrainz"]
+        MT1["Trigger de Calidad de Metadatos:\nBEFORE INSERT OR UPDATE ON artist\n(Coherencia cronológica y sort_name)"]
+    end
+```
+
+---
+
+### 🔍 1. Análisis Forense de los Triggers Nativos de `Pagila`
+
+Antes de crear triggers nuevos en `Pagila`, ejecutemos una consulta de inspección sobre `information_schema.triggers` para descubrir qué disparadores vienen preinstalados:
+
+```sql
+-- Ejecutar en la base de datos: pagila
+SELECT
+    event_object_table AS tabla,
+    trigger_name AS nombre_trigger,
+    action_timing AS momento,
+    STRING_AGG(event_manipulation, ', ' ORDER BY event_manipulation) AS eventos,
+    action_statement AS funcion_invocada
+FROM information_schema.triggers
+WHERE trigger_schema = 'public'
+GROUP BY event_object_table, trigger_name, action_timing, action_statement
+ORDER BY tabla, nombre_trigger;
+```
+
+Al analizar el resultado descubrirás **dos patrones de diseño industriales** que `Pagila` implementa en producción:
+
+#### Patrón Nativo A: Una Sola Función `last_updated()` Reutilizada por 14 Triggers Distintos
+En `Pagila`, casi todas las tablas (`actor`, `address`, `category`, `city`, `country`, `customer`, `film`, `film_actor`, `film_category`, `inventory`, `language`, `rental`, `staff`, `store`) tienen una columna llamada `last_update TIMESTAMPTZ`. En lugar de escribir 14 funciones distintas, el autor de `Pagila` aprovechó la arquitectura de 2 pasos de PostgreSQL:
+
+```sql
+-- 1. La función única nativa de Pagila:
+CREATE OR REPLACE FUNCTION public.last_updated()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.last_update = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END $function$;
+
+-- 2. Múltiples triggers asociados a la misma función en cada tabla:
+CREATE TRIGGER last_updated BEFORE UPDATE ON public.actor
+    FOR EACH ROW EXECUTE FUNCTION last_updated();
+
+CREATE TRIGGER last_updated BEFORE UPDATE ON public.film
+    FOR EACH ROW EXECUTE FUNCTION last_updated();
+
+CREATE TRIGGER last_updated BEFORE UPDATE ON public.customer
+    FOR EACH ROW EXECUTE FUNCTION last_updated();
+-- (...y así sucesivamente en las 14 tablas del esquema)
+```
+
+> **💡 Lección de Ingeniería:** Como todas las tablas comparten el mismo nombre de columna (`last_update`), una única función `BEFORE UPDATE FOR EACH ROW` modifica `NEW.last_update` en memoria antes de escribir en disco, con costo casi cero.
+
+#### Patrón Nativo B: Sincronización de Búsqueda de Texto Completo (`film_fulltext_trigger`)
+En la tabla `film`, existe una columna `fulltext TSVECTOR` indexada con GIN para búsquedas ultrarrápidas. Para que ningún desarrollador olvide recalcular ese vector cuando cambia el título (`title`) o la sinopsis (`description`) de una película, `Pagila` define este trigger pasando argumentos estáticos (`TG_ARGV`):
+
+```sql
+-- Trigger nativo en la tabla film de Pagila:
+CREATE TRIGGER film_fulltext_trigger
+BEFORE INSERT OR UPDATE ON public.film
+FOR EACH ROW
+EXECUTE FUNCTION tsvector_update_trigger('fulltext', 'pg_catalog.english', 'title', 'description');
+
+-- Prueba de invocación en Pagila:
+UPDATE film
+SET description = 'An Epic Drama of a Database Administrator and a PostgreSQL Trigger in Quito'
+WHERE film_id = 1;
+
+-- Verificamos que tanto last_update como el vector fulltext se actualizaron solos:
+SELECT film_id, title, last_update, fulltext FROM film WHERE film_id = 1;
+```
+
+---
+
+### 🛠️ 2. Creación de Nuevos Triggers Empresariales en `Pagila`, `Employees` y `MusicBrainz`
+
+#### Caso Real 1 (`Pagila`): Trigger `BEFORE INSERT ON rental` para Impedir Alquiler de DVDs No Disponibles o a Clientes Inactivos
+En el esquema original de `Pagila`, ¡nada impide hacer un `INSERT INTO rental` de un `inventory_id` que ya está alquilado y aún no ha sido devuelto (`return_date IS NULL`), ni impide alquilar a un cliente inactivo (`activebool = FALSE`)! Vamos a blindar la tabla `rental` con un trigger `BEFORE INSERT`:
+
+```sql
+-- Ejecutar en la base de datos: pagila
+CREATE OR REPLACE FUNCTION fn_trg_validar_alquiler_pagila()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_cliente_activo BOOLEAN;
+    v_cliente_nombre TEXT;
+BEGIN
+    -- 1. Verificar que el cliente exista y esté activo
+    SELECT activebool, first_name || ' ' || last_name
+    INTO STRICT v_cliente_activo, v_cliente_nombre
+    FROM customer
+    WHERE customer_id = NEW.customer_id;
+
+    IF NOT v_cliente_activo THEN
+        RAISE EXCEPTION 'Operación rechazada: El cliente #% (%) se encuentra INACTIVO en Pagila.',
+            NEW.customer_id, v_cliente_nombre
+            USING ERRCODE = '23514';
+    END IF;
+
+    -- 2. Verificar que el ejemplar físico (inventory_id) esté realmente en stock
+    --    reutilizando la función nativa inventory_in_stock() de Pagila
+    IF NOT inventory_in_stock(NEW.inventory_id) THEN
+        RAISE EXCEPTION 'Operación rechazada: El ejemplar físico (inventory_id=%) ya se encuentra alquilado y pendiente de devolución.',
+            NEW.inventory_id
+            USING ERRCODE = '23505',
+                  HINT = 'Consulte film_in_stock() para elegir otro inventory_id disponible.';
+    END IF;
+
+    -- 3. Asegurar fecha de alquiler y actualización por defecto
+    IF NEW.rental_date IS NULL THEN
+        NEW.rental_date := NOW();
+    END IF;
+    NEW.last_update := NOW();
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_bi_rental_validar_stock_cliente
+BEFORE INSERT ON rental
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_validar_alquiler_pagila();
+```
+
+---
+
+#### Caso Real 2 (`Employees` - 3.9M filas): Trigger `BEFORE INSERT ON salaries` para Cierre Automático del Salario Vigente Anterior
+En la base de datos `employees` (~2.84 millones de filas en `salaries`), la clave primaria de `salaries` es `(emp_no, from_date)` y el salario activo se marca con `to_date = '9999-01-01'`. Si alguien inserta un nuevo salario vigente sin cerrar el anterior, el empleado quedará con **dos salarios vigentes al mismo tiempo**, corrompiendo todos los reportes de nómina. Creemos un trigger que lo prevenga automáticamente:
+
+```sql
+-- Ejecutar en la base de datos: employees
+CREATE OR REPLACE FUNCTION fn_trg_gestionar_nuevo_salario_employees()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_salario_vigente_anterior INTEGER;
+    v_from_date_anterior       DATE;
+BEGIN
+    -- 1. Validación de salario mínimo corporativo
+    IF NEW.salary < 30000 THEN
+        RAISE EXCEPTION 'El salario ingresado ($%) para emp_no=% es inferior al mínimo corporativo ($30,000).',
+            NEW.salary, NEW.emp_no
+            USING ERRCODE = '23514';
+    END IF;
+
+    -- 2. Si no se especifica to_date, asumimos que es el nuevo salario vigente ('9999-01-01')
+    IF NEW.to_date IS NULL THEN
+        NEW.to_date := '9999-01-01'::DATE;
+    END IF;
+
+    -- 3. Si el nuevo registro viene como salario vigente ('9999-01-01'),
+    --    buscamos y cerramos automáticamente el salario vigente previo
+    IF NEW.to_date = '9999-01-01'::DATE THEN
+        SELECT salary, from_date
+        INTO v_salario_vigente_anterior, v_from_date_anterior
+        FROM salaries
+        WHERE emp_no = NEW.emp_no
+          AND to_date = '9999-01-01'::DATE
+        FOR UPDATE;
+
+        IF FOUND THEN
+            IF NEW.from_date <= v_from_date_anterior THEN
+                RAISE EXCEPTION 'La fecha de inicio del nuevo salario (%) debe ser posterior al inicio del salario vigente actual (%).',
+                    NEW.from_date, v_from_date_anterior;
+            END IF;
+
+            -- Cerramos el contrato salarial anterior con la fecha de inicio del nuevo
+            UPDATE salaries
+            SET to_date = NEW.from_date
+            WHERE emp_no = NEW.emp_no
+              AND to_date = '9999-01-01'::DATE;
+
+            RAISE NOTICE 'Salario anterior ($%) del empleado % cerrado con fecha %.',
+                v_salario_vigente_anterior, NEW.emp_no, NEW.from_date;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_bi_salaries_cierre_automatico
+BEFORE INSERT ON salaries
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_gestionar_nuevo_salario_employees();
+
+-- Prueba de invocación en Employees:
+-- Insertamos un nuevo salario vigente para el empleado 10001 y verificamos que el anterior se cierre solo:
+INSERT INTO salaries (emp_no, salary, from_date, to_date)
+VALUES (10001, 95000, CURRENT_DATE, '9999-01-01');
+
+SELECT emp_no, salary, from_date, to_date
+FROM salaries
+WHERE emp_no = 10001
+ORDER BY from_date DESC
+LIMIT 3;
+```
+
+---
+
+#### Caso Real 3 (`MusicBrainz`): Trigger `BEFORE INSERT OR UPDATE ON artist` para Coherencia Cronológica y Normalización
+En `MusicBrainz`, la tabla `artist` almacena la fecha de inicio (`begin_date_year`, `begin_date_month`, `begin_date_day`) y fin (`end_date_year`, etc.) de una banda o solista, además de `name`, `sort_name` y `ended`. Crearemos un trigger que normalice los nombres, autocompleta `sort_name` si se omite, marque `ended = TRUE` automáticamente si se registra año de finalización y valide que la fecha de disolución/fallecimiento no sea anterior a la de nacimiento/formación:
+
+```sql
+-- Ejecutar en la base de datos: musicbrainz
+CREATE OR REPLACE FUNCTION fn_trg_validar_artista_musicbrainz()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- 1. Limpieza de espacios en blanco
+    NEW.name := BTRIM(NEW.name);
+    IF NEW.sort_name IS NULL OR BTRIM(NEW.sort_name) = '' THEN
+        NEW.sort_name := NEW.name;
+    ELSE
+        NEW.sort_name := BTRIM(NEW.sort_name);
+    END IF;
+
+    -- 2. Validación de coherencia cronológica entre año de inicio y año de fin
+    IF NEW.begin_date_year IS NOT NULL AND NEW.end_date_year IS NOT NULL THEN
+        IF NEW.end_date_year < NEW.begin_date_year THEN
+            RAISE EXCEPTION 'Inconsistencia cronológica en el artista [%]: El año de finalización (%) no puede ser menor al año de inicio (%).',
+                NEW.name, NEW.end_date_year, NEW.begin_date_year
+                USING ERRCODE = '23514';
+        END IF;
+    END IF;
+
+    -- 3. Si tiene año de fin registrado, marcar automáticamente ended = TRUE
+    IF NEW.end_date_year IS NOT NULL THEN
+        NEW.ended := TRUE;
+    END IF;
+
+    NEW.last_updated := NOW();
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_biu_artist_calidad_datos
+BEFORE INSERT OR UPDATE ON artist
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_validar_artista_musicbrainz();
+```
+
+---
+
+### 🏆 3. Taller Práctico Adicional sobre `Pagila`, `Employees` y `MusicBrainz` (6 Retos con Solucionario)
+
+Desarrolla y prueba los siguientes **6 ejercicios de triggers** sobre las bases de datos reales:
+
+1. **Reto Real 1 (`Pagila` — Auditoría de Cambios de Tarifas en `film`):** Crea una tabla `film_price_audit` y un trigger `AFTER UPDATE OF rental_rate, replacement_cost ON film FOR EACH ROW WHEN (OLD.rental_rate IS DISTINCT FROM NEW.rental_rate OR OLD.replacement_cost IS DISTINCT FROM NEW.replacement_cost)` que guarde el historial de cambios de precios de las películas.
+2. **Reto Real 2 (`Pagila` — Protección contra Borrado de Clientes con Alquileres Pendientes):** Crea un trigger `BEFORE DELETE ON customer FOR EACH ROW` que impida eliminar un cliente si tiene alquileres sin devolver (`return_date IS NULL` en `rental`) o si su `get_customer_balance(OLD.customer_id, NOW()) > 0`.
+3. **Reto Real 3 (`Employees` — Protección de Jefaturas de Departamento en `dept_manager`):** Crea un trigger `BEFORE INSERT ON dept_manager FOR EACH ROW` que cierre automáticamente al manager vigente anterior (`to_date = '9999-01-01'`) de ese mismo departamento (`NEW.dept_no`) cuando se nombra un nuevo manager vigente.
+4. **Reto Real 4 (`Employees` — Auditoría Forense en `JSONB` de Cambios de Cargo en `titles`):** Crea una tabla `auditoria_titles_jsonb` y un trigger `AFTER INSERT OR UPDATE OR DELETE ON titles FOR EACH ROW` que registre `TG_OP`, `emp_no`, `to_jsonb(OLD)` y `to_jsonb(NEW)`.
+5. **Reto Real 5 (`MusicBrainz` — Sincronización y Validación de Duración en `recording`):** Crea un trigger `BEFORE INSERT OR UPDATE ON recording FOR EACH ROW` que impida registrar grabaciones con `length <= 0` (permitiendo `NULL` cuando se desconoce) o superiores a 24 horas (`86,400,000` ms), y limpie espacios en `NEW.name` y `NEW.comment`.
+6. **Reto Real 6 (`Pagila` — Trigger `INSTEAD OF INSERT` sobre la Vista `customer_list`):** La base `Pagila` incluye la vista nativa `customer_list`. Crea una vista `vw_registro_rapido_actor_pelicula` (que una `actor`, `film` y `film_actor`) y un trigger `INSTEAD OF INSERT` que permita vincular un actor a una película pasando sus nombres o IDs.
+
+<details>
+<summary>✅ Ver Solucionario Completo de los 6 Retos de Triggers en Pagila, Employees y MusicBrainz</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 1 (PAGILA): AUDITORÍA SELECTIVA DE PRECIOS EN FILM
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS film_price_audit (
+    audit_id             BIGSERIAL PRIMARY KEY,
+    film_id              INTEGER NOT NULL,
+    title                TEXT NOT NULL,
+    old_rental_rate      NUMERIC(4,2),
+    new_rental_rate      NUMERIC(4,2),
+    old_replacement_cost NUMERIC(5,2),
+    new_replacement_cost NUMERIC(5,2),
+    changed_by           TEXT NOT NULL DEFAULT CURRENT_USER,
+    changed_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION fn_trg_auditar_precios_film()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO film_price_audit (
+        film_id, title,
+        old_rental_rate, new_rental_rate,
+        old_replacement_cost, new_replacement_cost
+    )
+    VALUES (
+        NEW.film_id, NEW.title,
+        OLD.rental_rate, NEW.rental_rate,
+        OLD.replacement_cost, NEW.replacement_cost
+    );
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_au_film_precios
+AFTER UPDATE OF rental_rate, replacement_cost ON film
+FOR EACH ROW
+WHEN (
+    OLD.rental_rate IS DISTINCT FROM NEW.rental_rate
+    OR OLD.replacement_cost IS DISTINCT FROM NEW.replacement_cost
+)
+EXECUTE FUNCTION fn_trg_auditar_precios_film();
+
+-- Invocación de prueba en Pagila:
+UPDATE film SET rental_rate = rental_rate + 0.50 WHERE film_id = 1;
+SELECT * FROM film_price_audit;
+
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 2 (PAGILA): PROTECCIÓN BEFORE DELETE EN CUSTOMER
+-- =============================================================================
+CREATE OR REPLACE FUNCTION fn_trg_proteger_delete_customer()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_pendientes INTEGER;
+    v_saldo      NUMERIC;
+BEGIN
+    SELECT COUNT(*) INTO v_pendientes
+    FROM rental
+    WHERE customer_id = OLD.customer_id
+      AND return_date IS NULL;
+
+    IF v_pendientes > 0 THEN
+        RAISE EXCEPTION 'No se puede eliminar al cliente #% (% %): Posee % películas pendientes de devolución.',
+            OLD.customer_id, OLD.first_name, OLD.last_name, v_pendientes;
+    END IF;
+
+    v_saldo := get_customer_balance(OLD.customer_id, NOW());
+    IF v_saldo > 0 THEN
+        RAISE EXCEPTION 'No se puede eliminar al cliente #% (% %): Mantiene un saldo deudor de $%.',
+            OLD.customer_id, OLD.first_name, OLD.last_name, v_saldo;
+    END IF;
+
+    RETURN OLD;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_bd_customer_proteger
+BEFORE DELETE ON customer
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_proteger_delete_customer();
+
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 3 (EMPLOYEES): RELEVO AUTOMÁTICO DE MANAGER EN DEPT_MANAGER
+-- =============================================================================
+CREATE OR REPLACE FUNCTION fn_trg_relevo_dept_manager()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.to_date IS NULL THEN
+        NEW.to_date := '9999-01-01'::DATE;
+    END IF;
+
+    IF NEW.to_date = '9999-01-01'::DATE THEN
+        UPDATE dept_manager
+        SET to_date = NEW.from_date
+        WHERE dept_no = NEW.dept_no
+          AND to_date = '9999-01-01'::DATE
+          AND emp_no <> NEW.emp_no;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_bi_dept_manager_relevo
+BEFORE INSERT ON dept_manager
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_relevo_dept_manager();
+
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 4 (EMPLOYEES): AUDITORÍA JSONB EN TITLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS auditoria_titles_jsonb (
+    auditoria_id BIGSERIAL PRIMARY KEY,
+    operacion    VARCHAR(10) NOT NULL,
+    emp_no       INTEGER NOT NULL,
+    datos_old    JSONB,
+    datos_new    JSONB,
+    usuario      TEXT NOT NULL DEFAULT CURRENT_USER,
+    fecha        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION fn_trg_auditar_titles_jsonb()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO auditoria_titles_jsonb (operacion, emp_no, datos_old, datos_new)
+    VALUES (
+        TG_OP,
+        COALESCE(NEW.emp_no, OLD.emp_no),
+        CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD) ELSE NULL END,
+        CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN to_jsonb(NEW) ELSE NULL END
+    );
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_aiud_titles_auditoria
+AFTER INSERT OR UPDATE OR DELETE ON titles
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_auditar_titles_jsonb();
+
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 5 (MUSICBRAINZ): VALIDACIÓN DE DURACIÓN EN RECORDING
+-- =============================================================================
+CREATE OR REPLACE FUNCTION fn_trg_validar_recording_mb()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.name    := BTRIM(NEW.name);
+    NEW.comment := COALESCE(BTRIM(NEW.comment), '');
+
+    IF NEW.length IS NOT NULL THEN
+        IF NEW.length <= 0 OR NEW.length > 86400000 THEN
+            RAISE EXCEPTION 'Duración inválida (% ms) para la grabación [%]. Debe estar entre 1 ms y 86,400,000 ms (24h).',
+                NEW.length, NEW.name
+                USING ERRCODE = '23514';
+        END IF;
+    END IF;
+
+    NEW.last_updated := NOW();
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_biu_recording_validar
+BEFORE INSERT OR UPDATE ON recording
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_validar_recording_mb();
+
+-- =============================================================================
+-- SOLUCIÓN RETO REAL 6 (PAGILA): TRIGGER INSTEAD OF INSERT EN VISTA DE ELENCO
+-- =============================================================================
+CREATE OR REPLACE VIEW vw_elenco_peliculas_pagila AS
+SELECT
+    f.film_id,
+    f.title AS film_title,
+    a.actor_id,
+    a.first_name,
+    a.last_name,
+    fa.last_update
+FROM film f
+INNER JOIN film_actor fa ON fa.film_id = f.film_id
+INNER JOIN actor a ON a.actor_id = fa.actor_id;
+
+CREATE OR REPLACE FUNCTION fn_trg_ioi_elenco_pagila()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO film_actor (actor_id, film_id, last_update)
+    VALUES (NEW.actor_id, NEW.film_id, NOW())
+    ON CONFLICT (actor_id, film_id) DO UPDATE
+    SET last_update = NOW();
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_ioi_vw_elenco_peliculas
+INSTEAD OF INSERT ON vw_elenco_peliculas_pagila
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_ioi_elenco_pagila();
+```
+
+</details>
+
+---
+
 ## 📊 8. Rúbrica de Evaluación y Preguntas de Autoevaluación
 
 ### 8.1 Rúbrica del Taller Práctico (APECD - Semana 06)

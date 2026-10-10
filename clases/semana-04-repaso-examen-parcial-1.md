@@ -931,6 +931,414 @@ Para fortalecer la habilidad blanda del PEA (*"Realiza ejercicios extras de Func
 
 ---
 
+## 🌐 Examen Práctico Alternativo / Simulacro Real con Employees (3.9M), Pagila y MusicBrainz
+
+Para los docentes y estudiantes que deseen ejecutar la evaluación del **Primer Parcial** (o un simulacro de alto rendimiento previo al examen) directamente sobre las **3 bases de datos reales de referencia internacional** instaladas en el laboratorio, se presenta este instrumento integrador de **100 puntos (3 horas)**:
+
+1. **Employees (`employees`)** — *3,9 millones de registros (~3.919.015 filas, 333 MB, 6 tablas: `employees`, `departments`, `dept_emp`, `dept_manager`, `titles`, `salaries`)* de [Neon Sample Databases](https://github.com/neondatabase/postgres-sample-dbs).
+2. **Pagila (`pagila`)** — *33 tablas (~62.322 filas: `film`, `actor`, `film_actor`, `category`, `film_category`, `language`, `inventory`, `rental`, `payment` [particionada], `customer`, `staff`, `store`, `address`, `city`, `country`)* de [Pagila en GitHub](https://github.com/xzilla/pagila).
+3. **MusicBrainz (`musicbrainz`)** — *Esquema enciclopédico musical (`artist`, `artist_type`, `gender`, `area`, `area_type`, `recording`, `release`, `release_group`, `track`, `medium`, `link`, `link_type`, `l_artist_recording`, `l_artist_release`, `l_recording_work`)* de [MusicBrainz Database](https://musicbrainz.org/doc/MusicBrainz_Database).
+
+```mermaid
+flowchart TD
+    SIM["Simulacro Real Parcial 1 (100 Puntos)"] --> BA["Bloque A (30 pts): Modelado, Catálogos y Polimorfismo\n(Pagila + MusicBrainz)"]
+    SIM --> BB["Bloque B (40 pts): Consultas Analíticas Complejas\n(Pagila + Employees 3.9M + MusicBrainz)"]
+    SIM --> BC["Bloque C (30 pts): Vistas Materializadas e Índices con EXPLAIN ANALYZE\n(Employees 2.84M salaries + Pagila)"]
+
+    BA --> BA1["Tabla polimórfica de reseñas en Pagila\n(FILM, ACTOR, STORE) + JSONB"]
+    BA --> BA2["Inspección de relaciones polimórficas l_*\ny catálogos link_type en MusicBrainz"]
+
+    BB --> BB1["Pagila: Top 10 clientes por gasto,\nmorosidad con FILTER y ticket promedio"]
+    BB --> BB2["Employees: CTE de movilidad interdepartamental\ny crecimiento salarial > 35%"]
+    BB --> BB3["Pagila: Copias ociosas con NOT EXISTS\ny benchmarking por categoría"]
+    BB --> BB4["MusicBrainz: Ranking de artistas por área\ny grabaciones acreditadas"]
+
+    BC --> BC1["Pagila: Vista Materializada de rentabilidad\ncon REFRESH CONCURRENTLY"]
+    BC --> BC2["Employees: Índice Parcial Compuesto en salaries\npara acelerar filtro to_date = '9999-01-01'"]
+    BC --> BC3["Pagila: Índice GIN y Funcional sobre film"]
+```
+
+---
+
+### 🧩 Bloque A: Extensión de Modelado, Tablas Catálogo y Polimorfismo en `Pagila` y `MusicBrainz` (30 Puntos)
+
+1. **(15 pts) Extensión Polimórfica y de Catálogo en `Pagila`:**
+   - Conectado a la base de datos `pagila`, crea una tabla catálogo auto-referenciada llamada `catalogo_atributos_pagila` (`catalogo_id SERIAL PK`, `grupo VARCHAR(40)`, `codigo VARCHAR(40) UNIQUE`, `nombre VARCHAR(100)`, `padre_id INT REFERENCES catalogo_atributos_pagila(catalogo_id)`, `activo BOOLEAN DEFAULT TRUE`).
+   - Crea una tabla polimórfica llamada `resenas_comunidad_pagila` que permita a los clientes (`customer_id REFERENCES customer(customer_id)`) registrar reseñas tanto sobre una **Película (`'FILM'`)**, un **Actor (`'ACTOR'`)** o una **Tienda (`'STORE'`)**:
+     - Columnas requeridas: `resena_id BIGSERIAL PK`, `customer_id INT NOT NULL REFERENCES customer(customer_id)`, `entidad_tipo VARCHAR(15) NOT NULL CHECK (entidad_tipo IN ('FILM', 'ACTOR', 'STORE'))`, `entidad_id INT NOT NULL`, `calificacion SMALLINT NOT NULL CHECK (calificacion BETWEEN 1 AND 5)`, `comentario TEXT`, `metadatos_json JSONB NOT NULL DEFAULT '{}'::JSONB`, `fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+   - Inserta **3,000 reseñas sintéticas** usando `generate_series(1, 3000)` combinadas con IDs reales de `customer` (`1..599`), `film` (`1..1000`), `actor` (`1..200`) y `store` (`1..2`).
+
+2. **(15 pts) Auditoría de Enlaces Polimórficos/Relacionales en `MusicBrainz`:**
+   - En `MusicBrainz`, en lugar de usar una sola tabla polimórfica sin claves foráneas, la arquitectura utiliza un catálogo maestro de tipos de relaciones (`link_type` y `link`) junto con tablas puente tipadas (`l_artist_recording`, `l_artist_release`, `l_recording_work`) donde `entity0` y `entity1` representan las dos entidades conectadas.
+   - Escribe una consulta que inspeccione las tablas `l_artist_recording`, `link`, `link_type`, `artist`, `artist_type`, `area` y `recording` para mostrar: nombre del artista, su tipo (`Person`, `Group`, etc.), país/área de origen, el nombre del vínculo en el catálogo (`link_type.name`, ej. `'vocal'`, `'instrument'`, `'producer'`), y el total de grabaciones (`recording`) asociadas bajo ese rol.
+
+---
+
+### 📊 Bloque B: Consultas Complejas de Negocio en `Pagila`, `Employees` (3.9M) y `MusicBrainz` (40 Puntos)
+
+1. **(10 pts) Consulta B.1 (`Pagila`) — Auditoría de Clientes VIP y Morosidad en Devoluciones (`JOIN` + `FILTER` + `HAVING` + Escalares):**
+   - Construye una consulta sobre `customer`, `rental`, `inventory`, `film` y `payment` que obtenga el **Top 10 de clientes con mayor monto total pagado**.
+   - Debe proyectar: `customer_id`, nombre completo formateado (`INITCAP(first_name || ' ' || last_name)`), correo en minúsculas, total de alquileres realizados, cantidad de alquileres devueltos **a tiempo** (`EXTRACT(DAY FROM (r.return_date - r.rental_date)) <= f.rental_duration`), cantidad de alquileres devueltos **con atraso** (`EXTRACT(DAY FROM (r.return_date - r.rental_date)) > f.rental_duration`) usando `FILTER (WHERE ...)`, porcentaje de atraso redondeado a 2 decimales y gasto total acumulado (`SUM(p.amount)`).
+   - Filtra con `HAVING` solo clientes con al menos **25 alquileres** registrados.
+
+2. **(15 pts) Consulta B.2 (`Employees` - 3.9M filas) — Movilidad Interdepartamental y Crecimiento Salarial con `CTEs`:**
+   - En la base de datos `employees` (que contiene ~2.84 millones de registros en `salaries` y ~331,603 en `dept_emp`), utiliza bloques `WITH` (CTEs) para identificar a los empleados que cumplen simultáneamente:
+     1. Han trabajado en **2 o más departamentos distintos** a lo largo de su historia en `dept_emp`.
+     2. Tienen un contrato salarial vigente actualmente (`salaries.to_date = '9999-01-01'`).
+     3. Su salario actual supera en **más de un 35%** a su primer salario histórico en la empresa.
+   - Muestra: `emp_no`, nombre completo (`first_name || ' ' || last_name`), fecha de contratación (`hire_date`), cantidad de departamentos por los que pasó, primer salario, salario vigente actual, porcentaje de crecimiento salarial y el título de su cargo actual (`titles.title` con `to_date = '9999-01-01'`). Limita a los 20 empleados con mayor porcentaje de crecimiento.
+
+3. **(10 pts) Consulta B.3 (`Pagila`) — Detección de Inventario Inmovilizado de Alto Valor (`CTE` + `NOT EXISTS`):**
+   - Encuentra todas las películas (`film`) cuyo costo de reposición (`replacement_cost`) sea estrictamente mayor al promedio de `replacement_cost` de su propia categoría (`category`), y que además posean al menos un ejemplar físico en la tabla `inventory` que **nunca haya sido alquilado** (o que actualmente no tenga ningún alquiler activo `return_date IS NULL`) verificándolo mediante una subconsulta correlacionada con `EXISTS` / `NOT EXISTS`.
+
+4. **(5 pts) Consulta B.4 (`Pagila`) — Análisis Polimórfico Unificado:**
+   - Sobre la tabla `resenas_comunidad_pagila` creada en el Bloque A, escribe una consulta que resuelva el nombre real de la entidad evaluada (`film.title` cuando es `'FILM'`, `actor.first_name || ' ' || actor.last_name` cuando es `'ACTOR'`, y `'Tienda #' || store.store_id` cuando es `'STORE'`), mostrando el promedio de calificación y el total de reseñas por cada elemento.
+
+---
+
+### ⚡ Bloque C: Vistas, Vistas Materializadas y Optimización con Índices sobre Datos Masivos (30 Puntos)
+
+1. **(10 pts) Vista Materializada de Rentabilidad por Sucursal y Categoría en `Pagila`:**
+   - Crea la vista materializada `mv_pagila_rentabilidad_categoria` que consolide por `store_id`, `category_id` y `nombre_categoria`: total de copias en inventario, total de alquileres, ingresos recaudados (`SUM(payment.amount)`) y recaudación promedio por alquiler.
+   - Crea el `UNIQUE INDEX` correspondiente sobre `(store_id, category_id)` y ejecuta `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_pagila_rentabilidad_categoria;`.
+
+2. **(15 pts) Optimización de Consulta Pesada sobre 2.84 Millones de Salarios en `Employees` (`EXPLAIN ANALYZE`):**
+   - Ejecuta `EXPLAIN (ANALYZE, BUFFERS)` sobre la siguiente consulta analítica en `employees`:
+     ```sql
+     SELECT e.emp_no, e.first_name, e.last_name, s.salary, s.from_date
+     FROM employees e
+     INNER JOIN salaries s ON s.emp_no = e.emp_no
+     WHERE s.to_date = '9999-01-01'
+       AND s.salary >= 120000
+     ORDER BY s.salary DESC;
+     ```
+   - Diseña y crea un **Índice Compuesto, Parcial y Cubriente (`INCLUDE`)** sobre la tabla `salaries` que indexe únicamente los salarios vigentes (`WHERE to_date = '9999-01-01'`), actualiza estadísticas con `ANALYZE salaries;` y vuelve a ejecutar `EXPLAIN (ANALYZE, BUFFERS)` demostrando el paso de un `Seq Scan` sobre 2.84M de filas a un `Index Only Scan` en pocos milisegundos.
+
+3. **(5 pts) Índice Compuesto y GIN para Reseñas Polimórficas en `Pagila`:**
+   - Crea el índice compuesto `(entidad_tipo, entidad_id)` y el índice `GIN` sobre `metadatos_json` en `resenas_comunidad_pagila`, comprobando su uso con `EXPLAIN (ANALYZE, BUFFERS)`.
+
+---
+
+### 🔑 Solucionario Oficial del Simulacro Real (`Employees`, `Pagila` y `MusicBrainz`)
+
+<details>
+<summary>✅ Ver Solución Oficial — Bloque A: Extensión Polimórfica en Pagila y Auditoría en MusicBrainz</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIÓN BLOQUE A.1: CATÁLOGO Y TABLA POLIMÓRFICA EN PAGILA
+-- (Ejecutar conectado a la base de datos: pagila)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS catalogo_atributos_pagila (
+    catalogo_id SERIAL PRIMARY KEY,
+    grupo VARCHAR(40) NOT NULL,
+    codigo VARCHAR(40) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    padre_id INTEGER REFERENCES catalogo_atributos_pagila(catalogo_id) ON DELETE RESTRICT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+INSERT INTO catalogo_atributos_pagila (grupo, codigo, nombre, padre_id) VALUES
+('MOTIVO_RESENA', 'MOT_CALIDAD', 'Calidad de Producción y Contenido', NULL),
+('MOTIVO_RESENA', 'MOT_ATENCION', 'Experiencia de Atención en Sucursal', NULL),
+('SUBMOTIVO', 'SUB_GUION', 'Guion y Dirección Cinematográfica', 1),
+('SUBMOTIVO', 'SUB_ACTUACION', 'Desempeño Actoral Destacado', 1)
+ON CONFLICT (codigo) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS resenas_comunidad_pagila (
+    resena_id BIGSERIAL PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customer(customer_id) ON DELETE CASCADE,
+    entidad_tipo VARCHAR(15) NOT NULL CHECK (entidad_tipo IN ('FILM', 'ACTOR', 'STORE')),
+    entidad_id INTEGER NOT NULL,
+    calificacion SMALLINT NOT NULL CHECK (calificacion BETWEEN 1 AND 5),
+    comentario TEXT,
+    metadatos_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Poblamiento masivo de 3,000 reseñas vinculadas a IDs reales de Pagila
+INSERT INTO resenas_comunidad_pagila (
+    customer_id, entidad_tipo, entidad_id, calificacion, comentario, metadatos_json, fecha_creacion
+)
+SELECT
+    ((gs * 7) % 599) + 1 AS customer_id,
+    CASE
+        WHEN gs % 3 = 0 THEN 'FILM'
+        WHEN gs % 3 = 1 THEN 'ACTOR'
+        ELSE 'STORE'
+    END AS entidad_tipo,
+    CASE
+        WHEN gs % 3 = 0 THEN ((gs % 1000) + 1) -- film_id 1..1000
+        WHEN gs % 3 = 1 THEN ((gs % 200) + 1)  -- actor_id 1..200
+        ELSE ((gs % 2) + 1)                    -- store_id 1..2
+    END AS entidad_id,
+    1 + (gs % 5) AS calificacion,
+    'Reseña verificada de cliente #' || gs,
+    jsonb_build_object(
+        'verificado', (gs % 2 = 0),
+        'plataforma', CASE WHEN gs % 2 = 0 THEN 'web' ELSE 'app_movil' END,
+        'tags', CASE WHEN gs % 3 = 0 THEN '["recomendada", "hd"]'::jsonb ELSE '["clasico"]'::jsonb END
+    ),
+    NOW() - ((gs % 120) || ' days')::INTERVAL
+FROM generate_series(1, 3000) AS gs;
+
+-- =============================================================================
+-- SOLUCIÓN BLOQUE A.2: AUDITORÍA DE ENLACES EN MUSICBRAINZ
+-- (Ejecutar conectado a la base de datos: musicbrainz)
+-- =============================================================================
+SELECT
+    a.name AS nombre_artista,
+    COALESCE(at.name, 'No especificado') AS tipo_artista,
+    COALESCE(ar.name, 'Global / Desconocido') AS pais_origen,
+    lt.name AS rol_en_catalogo_link_type,
+    COUNT(lar.id) AS total_grabaciones_vinculadas
+FROM artist a
+LEFT JOIN artist_type at ON at.id = a.type
+LEFT JOIN area ar ON ar.id = a.area
+INNER JOIN l_artist_recording lar ON lar.entity0 = a.id
+INNER JOIN link l ON l.id = lar.link
+INNER JOIN link_type lt ON lt.id = l.link_type
+INNER JOIN recording rec ON rec.id = lar.entity1
+GROUP BY a.id, a.name, at.name, ar.name, lt.name
+HAVING COUNT(lar.id) >= 5
+ORDER BY total_grabaciones_vinculadas DESC
+LIMIT 25;
+```
+
+</details>
+
+<details>
+<summary>✅ Ver Solución Oficial — Bloque B: Consultas Complejas en Pagila y Employees (3.9M filas)</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIÓN CONSULTA B.1 (PAGILA): TOP 10 CLIENTES POR GASTO Y TASA DE ATRASO
+-- =============================================================================
+WITH metricas_alquiler AS (
+    SELECT
+        r.customer_id,
+        COUNT(r.rental_id) AS total_alquileres,
+        COUNT(r.rental_id) FILTER (
+            WHERE r.return_date IS NOT NULL
+              AND EXTRACT(DAY FROM (r.return_date - r.rental_date)) <= f.rental_duration
+        ) AS devueltos_a_tiempo,
+        COUNT(r.rental_id) FILTER (
+            WHERE r.return_date IS NOT NULL
+              AND EXTRACT(DAY FROM (r.return_date - r.rental_date)) > f.rental_duration
+        ) AS devueltos_con_atraso
+    FROM rental r
+    INNER JOIN inventory i ON i.inventory_id = r.inventory_id
+    INNER JOIN film f ON f.film_id = i.film_id
+    GROUP BY r.customer_id
+    HAVING COUNT(r.rental_id) >= 25
+),
+gasto_cliente AS (
+    SELECT
+        p.customer_id,
+        SUM(p.amount) AS monto_total_pagado,
+        ROUND(AVG(p.amount), 2) AS ticket_promedio_pago
+    FROM payment p
+    GROUP BY p.customer_id
+)
+SELECT
+    c.customer_id,
+    INITCAP(c.first_name || ' ' || c.last_name) AS cliente,
+    LOWER(c.email) AS correo,
+    ma.total_alquileres,
+    ma.devueltos_a_tiempo,
+    ma.devueltos_con_atraso,
+    ROUND((ma.devueltos_con_atraso::NUMERIC * 100.0) / NULLIF(ma.total_alquileres, 0), 2) AS pct_morosidad,
+    gc.monto_total_pagado,
+    gc.ticket_promedio_pago
+FROM customer c
+INNER JOIN metricas_alquiler ma ON ma.customer_id = c.customer_id
+INNER JOIN gasto_cliente gc ON gc.customer_id = c.customer_id
+ORDER BY gc.monto_total_pagado DESC
+LIMIT 10;
+
+-- =============================================================================
+-- SOLUCIÓN CONSULTA B.2 (EMPLOYEES - 3.9M FILAS): MOVILIDAD Y CRECIMIENTO > 35%
+-- =============================================================================
+WITH empleados_multidepto AS (
+    SELECT
+        de.emp_no,
+        COUNT(DISTINCT de.dept_no) AS total_departamentos
+    FROM dept_emp de
+    GROUP BY de.emp_no
+    HAVING COUNT(DISTINCT de.dept_no) >= 2
+),
+primer_salario AS (
+    SELECT DISTINCT ON (s.emp_no)
+        s.emp_no,
+        s.salary AS salario_inicial,
+        s.from_date AS fecha_primer_salario
+    FROM salaries s
+    ORDER BY s.emp_no, s.from_date ASC
+),
+salario_actual AS (
+    SELECT
+        s.emp_no,
+        s.salary AS salario_vigente
+    FROM salaries s
+    WHERE s.to_date = '9999-01-01'::DATE
+)
+SELECT
+    e.emp_no,
+    e.first_name || ' ' || e.last_name AS empleado,
+    e.hire_date,
+    em.total_departamentos,
+    ps.salario_inicial,
+    sa.salario_vigente,
+    ROUND(((sa.salario_vigente - ps.salario_inicial)::NUMERIC * 100.0) / ps.salario_inicial, 2) AS pct_crecimiento,
+    t.title AS cargo_actual
+FROM employees e
+INNER JOIN empleados_multidepto em ON em.emp_no = e.emp_no
+INNER JOIN primer_salario ps ON ps.emp_no = e.emp_no
+INNER JOIN salario_actual sa ON sa.emp_no = e.emp_no
+LEFT JOIN titles t ON t.emp_no = e.emp_no AND t.to_date = '9999-01-01'::DATE
+WHERE ((sa.salario_vigente - ps.salario_inicial)::NUMERIC / ps.salario_inicial) > 0.35
+ORDER BY pct_crecimiento DESC
+LIMIT 20;
+
+-- =============================================================================
+-- SOLUCIÓN CONSULTA B.3 (PAGILA): PELÍCULAS CARAS CON COPIAS JAMÁS ALQUILADAS
+-- =============================================================================
+WITH promedio_reposicion_cat AS (
+    SELECT
+        fc.category_id,
+        ROUND(AVG(f.replacement_cost), 2) AS avg_replacement_cat
+    FROM film f
+    INNER JOIN film_category fc ON fc.film_id = f.film_id
+    GROUP BY fc.category_id
+)
+SELECT
+    c.name AS categoria,
+    f.film_id,
+    f.title AS pelicula,
+    f.replacement_cost,
+    prc.avg_replacement_cat,
+    i.inventory_id AS copia_ociosa_id,
+    i.store_id
+FROM film f
+INNER JOIN film_category fc ON fc.film_id = f.film_id
+INNER JOIN category c ON c.category_id = fc.category_id
+INNER JOIN promedio_reposicion_cat prc ON prc.category_id = fc.category_id
+INNER JOIN inventory i ON i.film_id = f.film_id
+WHERE f.replacement_cost > prc.avg_replacement_cat
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rental r
+      WHERE r.inventory_id = i.inventory_id
+  )
+ORDER BY f.replacement_cost DESC, f.title ASC;
+
+-- =============================================================================
+-- SOLUCIÓN CONSULTA B.4 (PAGILA): REPORTE CONSOLIDADO DE RESEÑAS POLIMÓRFICAS
+-- =============================================================================
+SELECT
+    rcp.entidad_tipo,
+    COALESCE(
+        f.title,
+        a.first_name || ' ' || a.last_name,
+        'Sucursal Pagila #' || s.store_id
+    ) AS nombre_entidad_evaluada,
+    COUNT(rcp.resena_id) AS total_resenas,
+    ROUND(AVG(rcp.calificacion), 2) AS calificacion_promedio
+FROM resenas_comunidad_pagila rcp
+LEFT JOIN film f  ON rcp.entidad_tipo = 'FILM'  AND rcp.entidad_id = f.film_id
+LEFT JOIN actor a ON rcp.entidad_tipo = 'ACTOR' AND rcp.entidad_id = a.actor_id
+LEFT JOIN store s ON rcp.entidad_tipo = 'STORE' AND rcp.entidad_id = s.store_id
+GROUP BY
+    rcp.entidad_tipo,
+    COALESCE(f.title, a.first_name || ' ' || a.last_name, 'Sucursal Pagila #' || s.store_id)
+ORDER BY rcp.entidad_tipo, calificacion_promedio DESC
+LIMIT 30;
+```
+
+</details>
+
+<details>
+<summary>✅ Ver Solución Oficial — Bloque C: Vistas Materializadas e Índices en Employees y Pagila</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIÓN BLOQUE C.1 (PAGILA): VISTA MATERIALIZADA CON REFRESCO CONCURRENTE
+-- =============================================================================
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_pagila_rentabilidad_categoria AS
+SELECT
+    i.store_id,
+    c.category_id,
+    c.name AS nombre_categoria,
+    COUNT(DISTINCT i.inventory_id) AS copias_en_inventario,
+    COUNT(DISTINCT r.rental_id) AS total_alquileres,
+    COALESCE(SUM(p.amount), 0.00) AS ingresos_recaudados,
+    ROUND(COALESCE(AVG(p.amount), 0.00), 2) AS ticket_promedio
+FROM inventory i
+INNER JOIN film_category fc ON fc.film_id = i.film_id
+INNER JOIN category c ON c.category_id = fc.category_id
+LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+LEFT JOIN payment p ON p.rental_id = r.rental_id
+GROUP BY i.store_id, c.category_id, c.name
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_uq_mv_pagila_rentabilidad
+ON mv_pagila_rentabilidad_categoria (store_id, category_id);
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_pagila_rentabilidad_categoria;
+
+-- =============================================================================
+-- SOLUCIÓN BLOQUE C.2 (EMPLOYEES - 2.84M SALARIES): ÍNDICE PARCIAL Y CUBRIENTE
+-- =============================================================================
+-- 1. Medición Antes del Índice (Realiza Seq Scan sobre ~2.84 millones de filas)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT e.emp_no, e.first_name, e.last_name, s.salary, s.from_date
+FROM employees e
+INNER JOIN salaries s ON s.emp_no = e.emp_no
+WHERE s.to_date = '9999-01-01'::DATE
+  AND s.salary >= 120000
+ORDER BY s.salary DESC;
+
+-- 2. Creación de Índice Parcial (solo indexa contratos vigentes) + INCLUDE
+CREATE INDEX IF NOT EXISTS idx_salaries_vigentes_altos
+ON salaries (salary DESC, emp_no)
+INCLUDE (from_date)
+WHERE to_date = '9999-01-01'::DATE;
+
+ANALYZE salaries;
+
+-- 3. Medición Después del Índice (Index Only Scan sobre salaries + Nested Loop)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT e.emp_no, e.first_name, e.last_name, s.salary, s.from_date
+FROM employees e
+INNER JOIN salaries s ON s.emp_no = e.emp_no
+WHERE s.to_date = '9999-01-01'::DATE
+  AND s.salary >= 120000
+ORDER BY s.salary DESC;
+
+-- =============================================================================
+-- SOLUCIÓN BLOQUE C.3 (PAGILA): ÍNDICES POLIMÓRFICOS Y GIN
+-- =============================================================================
+CREATE INDEX IF NOT EXISTS idx_resenas_pagila_entidad
+ON resenas_comunidad_pagila (entidad_tipo, entidad_id);
+
+CREATE INDEX IF NOT EXISTS idx_resenas_pagila_json_gin
+ON resenas_comunidad_pagila USING GIN (metadatos_json);
+
+ANALYZE resenas_comunidad_pagila;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT resena_id, customer_id, calificacion, comentario
+FROM resenas_comunidad_pagila
+WHERE entidad_tipo = 'FILM'
+  AND entidad_id = 10
+  AND metadatos_json @> '{"verificado": true}'::JSONB;
+```
+
+</details>
+
+---
+
 ## 📊 8. Rúbrica Oficial de Evaluación del Examen Parcial 1
 
 | Criterio de Evaluación | Excelente (100%) | Satisfactorio (75%) | En Proceso (50%) | Insuficiente (<25%) | Peso |

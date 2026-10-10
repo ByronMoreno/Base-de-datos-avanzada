@@ -770,6 +770,411 @@ Crea en tu repositorio o carpeta de trabajo un archivo llamado `aa-semana02-bita
 
 ---
 
+## 🌐 Laboratorio Avanzado a Escala Real: SQL Complejo, Carga Masiva e IA sobre Employees (3.9M), Pagila y MusicBrainz
+
+Para llevar tus habilidades de **SQL Avanzado (RdA 2 y RdA 4)** al nivel que exige la industria, en este laboratorio ejecutaremos consultas analíticas reales sobre los tres datasets de referencia: **`Employees` (3,9 millones de registros)**, **`Pagila` (62.322 filas en 33 tablas)** y **`MusicBrainz`**.
+
+---
+
+### 🏢 1. Consultas Analíticas de Alta Complejidad sobre `Employees` (~3,92 Millones de Filas)
+
+Cuando trabajamos con la base de datos **[Employees de Neon](https://github.com/neondatabase/postgres-sample-dbs)** (`300,024` empleados y `2,844,047` registros salariales), un error en un `JOIN` sin filtrar la vigencia (`to_date = '9999-01-01'`) multiplicará las filas produciendo un **producto cartesiano parcial (*Fan-out*)** de decenas de millones de tuplas.
+
+```mermaid
+flowchart LR
+    E["employees<br/>(300,024 filas)"] -->|"emp_no + to_date='9999-01-01'"| DE["dept_emp<br/>(331,603 filas)"]
+    DE -->|"dept_no"| D["departments<br/>(9 departamentos)"]
+    D -->|"dept_no + to_date='9999-01-01'"| DM["dept_manager<br/>(24 gerentes hist.)"]
+    DM -->|"emp_no"| M["employees (Alias: mgr)<br/>(Gerente Actual)"]
+    E -->|"emp_no + to_date='9999-01-01'"| S["salaries<br/>(2,844,047 filas)"]
+    E -->|"emp_no + to_date='9999-01-01'"| T["titles<br/>(443,308 filas)"]
+```
+
+#### Ejemplo Magistral 1: Cruce de las 6 Tablas de `Employees` + `SELF JOIN` de Gerente Vigente
+Obtener la radiografía ejecutiva de cada departamento mostrando: nombre del departamento, nombre completo de su gerente actual, salario actual del gerente, total de empleados activos en ese departamento, masa salarial anual vigente, salario promedio del departamento y qué porcentaje gana el gerente respecto al promedio de su equipo:
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: employees
+-- Cruce de 6 tablas + Agregación + Cálculos Financieros
+-- ============================================================================
+WITH nomina_vigente_departamento AS (
+    SELECT
+        de.dept_no,
+        COUNT(DISTINCT de.emp_no) AS empleados_activos,
+        SUM(s.salary) AS masa_salarial_anual_usd,
+        ROUND(AVG(s.salary), 2) AS salario_promedio_depto,
+        MIN(s.salary) AS salario_minimo_depto,
+        MAX(s.salary) AS salario_maximo_depto
+    FROM dept_emp de
+    INNER JOIN salaries s
+        ON de.emp_no = s.emp_no
+       AND s.to_date = DATE '9999-01-01'
+    WHERE de.to_date = DATE '9999-01-01'
+    GROUP BY de.dept_no
+)
+SELECT
+    d.dept_no,
+    d.dept_name AS departamento,
+    CONCAT_WS(' ', mgr.first_name, mgr.last_name) AS gerente_actual,
+    t_mgr.title AS cargo_gerente,
+    s_mgr.salary AS salario_gerente_usd,
+    nv.empleados_activos,
+    nv.masa_salarial_anual_usd,
+    nv.salario_promedio_depto,
+    ROUND(
+        ((s_mgr.salary - nv.salario_promedio_depto) / NULLIF(nv.salario_promedio_depto, 0)) * 100,
+        2
+    ) AS brecha_gerente_vs_promedio_pct
+FROM departments d
+INNER JOIN nomina_vigente_departamento nv ON d.dept_no = nv.dept_no
+INNER JOIN dept_manager dm
+    ON d.dept_no = dm.dept_no
+   AND dm.to_date = DATE '9999-01-01'
+INNER JOIN employees mgr ON dm.emp_no = mgr.emp_no
+INNER JOIN salaries s_mgr
+    ON mgr.emp_no = s_mgr.emp_no
+   AND s_mgr.to_date = DATE '9999-01-01'
+LEFT JOIN titles t_mgr
+    ON mgr.emp_no = t_mgr.emp_no
+   AND t_mgr.to_date = DATE '9999-01-01'
+ORDER BY nv.masa_salarial_anual_usd DESC;
+```
+
+#### Ejemplo Magistral 2: Crecimiento Salarial Histórico con `DISTINCT ON` y `CTE`
+¿Quiénes son los 10 empleados vigentes que han tenido el mayor crecimiento salarial porcentual desde su primer sueldo (`hire_date`) hasta su sueldo actual?
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: employees
+-- Uso de DISTINCT ON para extraer el primer salario histórico por empleado
+-- ============================================================================
+WITH primer_salario AS (
+    SELECT DISTINCT ON (s.emp_no)
+        s.emp_no,
+        s.salary AS sueldo_inicial,
+        s.from_date AS fecha_inicio
+    FROM salaries s
+    ORDER BY s.emp_no, s.from_date ASC
+),
+salario_actual AS (
+    SELECT
+        s.emp_no,
+        s.salary AS sueldo_vigente
+    FROM salaries s
+    WHERE s.to_date = DATE '9999-01-01'
+)
+SELECT
+    e.emp_no,
+    CONCAT_WS(' ', e.first_name, e.last_name) AS empleado,
+    ps.fecha_inicio,
+    ps.sueldo_inicial,
+    sa.sueldo_vigente,
+    (sa.sueldo_vigente - ps.sueldo_inicial) AS incremento_absoluto_usd,
+    ROUND(
+        ((sa.sueldo_vigente - ps.sueldo_inicial)::NUMERIC / NULLIF(ps.sueldo_inicial, 0)) * 100,
+        2
+    ) AS crecimiento_porcentual
+FROM employees e
+INNER JOIN primer_salario ps ON e.emp_no = ps.emp_no
+INNER JOIN salario_actual sa ON e.emp_no = sa.emp_no
+ORDER BY crecimiento_porcentual DESC
+LIMIT 10;
+```
+
+---
+
+### 🎬 2. Consultas Complejas de Inteligencia de Negocios sobre `Pagila` (~62.322 Filas)
+
+En **[Pagila](https://github.com/xzilla/pagila)**, una consulta gerencial típica atraviesa hasta **7 tablas en cadena** (`category` ➔ `film_category` ➔ `film` ➔ `inventory` ➔ `rental` ➔ `payment` ➔ `customer`).
+
+#### Ejemplo Magistral 3: Rentabilidad por Categoría, Desglose por Sede (`FILTER`) y Morosidad (`AGE`)
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: pagila
+-- Ingresos por categoría, pivotado por tienda (Store 1 vs Store 2) y atrasos
+-- ============================================================================
+SELECT
+    c.name AS categoria_pelicula,
+    COUNT(DISTINCT f.film_id) AS peliculas_en_catalogo,
+    COUNT(r.rental_id) AS total_alquileres,
+    -- Pivotado limpio con cláusula FILTER de PostgreSQL:
+    ROUND(COALESCE(SUM(p.amount) FILTER (WHERE i.store_id = 1), 0), 2) AS ingresos_tienda_1_usd,
+    ROUND(COALESCE(SUM(p.amount) FILTER (WHERE i.store_id = 2), 0), 2) AS ingresos_tienda_2_usd,
+    ROUND(COALESCE(SUM(p.amount), 0), 2) AS ingresos_totales_usd,
+    -- Conteo de alquileres devueltos con retraso respecto a film.rental_duration:
+    COUNT(r.rental_id) FILTER (
+        WHERE EXTRACT(DAY FROM (r.return_date - r.rental_date)) > f.rental_duration
+    ) AS devoluciones_atrasadas
+FROM category c
+INNER JOIN film_category fc ON c.category_id = fc.category_id
+INNER JOIN film f ON fc.film_id = f.film_id
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY c.category_id, c.name
+ORDER BY ingresos_totales_usd DESC;
+```
+
+#### Ejemplo Magistral 4: Detección de "Stock Muerto" en `Pagila` (`LEFT ANTI-JOIN` vs `NOT EXISTS`)
+Identificar películas del catálogo de `Pagila` que no tienen ni un solo ejemplar físico en la tabla `inventory` o que jamás han sido alquiladas:
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: pagila
+-- Películas que existen en el catálogo (film) pero NO tienen copias en inventory
+-- ============================================================================
+SELECT
+    f.film_id,
+    f.title AS titulo_pelicula,
+    f.release_year,
+    f.rating,
+    f.replacement_cost
+FROM film f
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM inventory i
+    WHERE i.film_id = f.film_id
+)
+ORDER BY f.replacement_cost DESC, f.title;
+```
+
+---
+
+### 🎵 3. Consultas Escalares y de Metadatos sobre `MusicBrainz`
+
+En **[MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_Database)** (y en nuestro esquema `musicbrainz_lab`), la duración de las grabaciones (`recording.length_ms` o `length`) se almacena en **milisegundos** como un número entero. Veamos cómo convertir milisegundos al formato musical estándar `MM:SS` utilizando funciones escalares matemáticas y de texto (`DIV`, `MOD`, `LPAD`):
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN EL ESQUEMA: musicbrainz_lab
+-- Conversión escalar de milisegundos a formato MM:SS y análisis por artista
+-- ============================================================================
+SET search_path TO musicbrainz_lab, public;
+
+SELECT
+    r.id AS recording_id,
+    r.name AS titulo_grabacion,
+    r.isrc,
+    r.length_ms,
+    -- Conversión matemática exacta de milisegundos a MM:SS
+    LPAD(((r.length_ms / 1000) / 60)::TEXT, 2, '0')
+        || ':' ||
+    LPAD(((r.length_ms / 1000) % 60)::TEXT, 2, '0') AS duracion_mm_ss,
+    STRING_AGG(DISTINCT a.name, ', ') AS artistas_relacionados
+FROM recording r
+LEFT JOIN artist_relationship_polymorphic rel ON r.id = rel.recording_id
+LEFT JOIN artist a ON rel.artist_id = a.id
+GROUP BY r.id, r.name, r.isrc, r.length_ms
+ORDER BY r.length_ms DESC;
+```
+
+---
+
+### 📦 4. Guía Especial APEA y AA con `Employees` y `Pagila`
+
+#### A. Práctica APEA (Ingreso Masivo): Cómo funciona la carga de 3,9 Millones de filas en `employees.sql.gz`
+Si inspeccionas por dentro el archivo `employees.sql.gz` de Neon (`zcat employees.sql.gz | head -n 120`), descubrirás por qué logra insertar **3,919,015 registros en pocos segundos**: **no utiliza 3,9 millones de sentencias `INSERT` individuales**, sino bloques de flujo `COPY ... FROM stdin;`:
+
+```sql
+-- Ejemplo de cómo exporta e importa datos masivos pg_dump / Neon usando COPY:
+-- COPY public.salaries (emp_no, salary, from_date, to_date) FROM stdin;
+-- 10001	60117	1986-06-26	1987-06-26
+-- 10001	62102	1987-06-26	1988-06-25
+-- \.
+```
+
+#### B. Práctica AA (Prompt Engineering en VS Code para `Employees` y `Pagila`)
+Para tu bitácora de **Aprendizaje Autónomo (AA)** en Visual Studio Code, utiliza el siguiente prompt de alta precisión sobre `Pagila`:
+
+```markdown
+Actúa como un Especialista Senior en PostgreSQL 16.
+Trabajando sobre el esquema oficial de la base de datos `pagila` (tablas: `customer`, `address`, `city`, `country`, `rental`, `payment`, `inventory`, `film`):
+
+Escribe una consulta SQL utilizando CTEs (`WITH`) que identifique a los 10 mejores clientes ("Clientes VIP") a nivel mundial según el monto total pagado (`SUM(payment.amount)`).
+La consulta debe proyectar:
+1. Nombre completo del cliente en formato Título (`INITCAP(first_name || ' ' || last_name)`).
+2. Correo electrónico en minúsculas.
+3. País y Ciudad de residencia (`country.country`, `city.city`).
+4. Cantidad total de películas alquiladas (`COUNT(DISTINCT rental_id)`).
+5. Monto total pagado y ticket promedio por alquiler.
+6. Título de la última película que alquiló (usando una subconsulta correlacionada o un CTE con `DISTINCT ON (customer_id)`).
+```
+
+---
+
+### 🏆 Taller Práctico Adicional sobre `Employees`, `Pagila` y `MusicBrainz` (6 Retos)
+
+#### 🔹 Reto Real 1 (`Employees` — Equidad Salarial por Género y Departamento)
+Sobre los 3,9 millones de registros de `employees`, escribe una consulta que muestre por cada departamento (`dept_name`): la cantidad de hombres (`gender = 'M'`) y mujeres (`gender = 'F'`) con contrato vigente (`dept_emp.to_date = '9999-01-01'`), el salario promedio vigente de hombres y el salario promedio vigente de mujeres (usando `AVG(s.salary) FILTER (WHERE e.gender = ...)`), y la diferencia porcentual entre ambos promedios.
+
+#### 🔹 Reto Real 2 (`Employees` — Subconsulta Correlacionada `EXISTS` de Ascensos de Cargo)
+En `employees`, encuentra a todos los empleados vigentes cuyo salario actual supere los `$110,000` anuales y que hayan ocupado **3 o más cargos distintos (`titles`)** a lo largo de su historia en la empresa (usando una subconsulta o CTE sobre `titles`).
+
+#### 🔹 Reto Real 3 (`Pagila` — Clientes con Alquileres Sin Devolver / Morosos Activos)
+En `pagila`, existen alquileres donde `return_date IS NULL` (películas que nunca fueron devueltas a la tienda). Escribe una consulta que liste el nombre del cliente, su teléfono (`address.phone`), el título de la película retenida, la tienda propietaria (`store_id`), la fecha del alquiler y cuántos días han transcurrido desde el alquiler hasta el último registro de la base (`MAX(rental_date)` de la tabla).
+
+#### 🔹 Reto Real 4 (`Pagila` — Actores Más Taquilleros con `CTE` y `HAVING`)
+Mediante un CTE en `pagila`, calcula cuántos ingresos por alquiler (`SUM(payment.amount)`) han generado las películas en las que participa cada actor (`actor` ➔ `film_actor` ➔ `film` ➔ `inventory` ➔ `rental` ➔ `payment`). Filtra con `HAVING` solo aquellos actores que hayan participado en más de **25 películas distintas** y muestra el Top 10 ordenado por recaudación total descendente.
+
+#### 🔹 Reto Real 5 (`Pagila` — Consulta sobre Arreglos `special_features TEXT[]`)
+La tabla `film` de Pagila tiene una columna `special_features TEXT[]` que contiene valores como `{"Trailers","Commentaries","Deleted Scenes","Behind the Scenes"}`. Escribe una consulta que agrupe por clasificación `rating` y cuente cuántas películas incluyen `'Behind the Scenes'` (usando el operador de contención de arreglos `@> ARRAY['Behind the Scenes']`) y cuál es su costo de reemplazo promedio.
+
+#### 🔹 Reto Real 6 (`MusicBrainz` — Carga Masiva de 10,000 Grabaciones con `generate_series`)
+En el esquema `musicbrainz_lab`, utiliza `INSERT INTO recording ... SELECT ... FROM generate_series(1, 10000)` para generar **10,000 grabaciones musicales sintéticas** con códigos `ISRC` únicos (`'EC-YAV-26-' || LPAD(g::TEXT, 5, '0')`) y duraciones entre `120,000 ms` (2 min) y `420,000 ms` (7 min). Luego, escribe una consulta con `GROUP BY` que clasifique las grabaciones en `'Corta (< 3 min)'`, `'Estándar (3 a 5 min)'` y `'Extendida (> 5 min)'` mostrando el conteo y duración promedio de cada segmento.
+
+<details>
+<summary>✅ Ver Solución Propuesta de los 6 Retos sobre Employees, Pagila y MusicBrainz</summary>
+
+```sql
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 1 (En BD: employees): Equidad Salarial por Departamento
+-- ============================================================================
+SELECT
+    d.dept_name AS departamento,
+    COUNT(*) FILTER (WHERE e.gender = 'M') AS total_hombres,
+    COUNT(*) FILTER (WHERE e.gender = 'F') AS total_mujeres,
+    ROUND(AVG(s.salary) FILTER (WHERE e.gender = 'M'), 2) AS salario_prom_hombres,
+    ROUND(AVG(s.salary) FILTER (WHERE e.gender = 'F'), 2) AS salario_prom_mujeres,
+    ROUND(
+        (
+            (AVG(s.salary) FILTER (WHERE e.gender = 'F') - AVG(s.salary) FILTER (WHERE e.gender = 'M'))
+            / NULLIF(AVG(s.salary) FILTER (WHERE e.gender = 'M'), 0)
+        ) * 100,
+        2
+    ) AS diferencia_f_vs_m_pct
+FROM departments d
+INNER JOIN dept_emp de
+    ON d.dept_no = de.dept_no
+   AND de.to_date = DATE '9999-01-01'
+INNER JOIN employees e ON de.emp_no = e.emp_no
+INNER JOIN salaries s
+    ON e.emp_no = s.emp_no
+   AND s.to_date = DATE '9999-01-01'
+GROUP BY d.dept_no, d.dept_name
+ORDER BY d.dept_name;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 2 (En BD: employees): Empleados > $110k con >= 3 cargos
+-- ============================================================================
+WITH conteo_cargos AS (
+    SELECT
+        t.emp_no,
+        COUNT(DISTINCT t.title) AS total_cargos_historicos,
+        STRING_AGG(t.title, ' -> ' ORDER BY t.from_date) AS trayectoria_cargos
+    FROM titles t
+    GROUP BY t.emp_no
+    HAVING COUNT(DISTINCT t.title) >= 3
+)
+SELECT
+    e.emp_no,
+    CONCAT_WS(' ', e.first_name, e.last_name) AS empleado,
+    e.hire_date,
+    s.salary AS salario_actual_usd,
+    cc.total_cargos_historicos,
+    cc.trayectoria_cargos
+FROM employees e
+INNER JOIN salaries s
+    ON e.emp_no = s.emp_no
+   AND s.to_date = DATE '9999-01-01'
+INNER JOIN conteo_cargos cc ON e.emp_no = cc.emp_no
+WHERE s.salary > 110000
+ORDER BY s.salary DESC;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 3 (En BD: pagila): Alquileres NO devueltos (return_date IS NULL)
+-- ============================================================================
+SELECT
+    CONCAT_WS(' ', c.first_name, c.last_name) AS cliente_moroso,
+    a.phone AS telefono_contacto,
+    ci.city AS ciudad,
+    co.country AS pais,
+    f.title AS pelicula_no_devuelta,
+    i.store_id AS tienda_propietaria,
+    r.rental_date AS fecha_alquiler,
+    f.replacement_cost AS costo_reposicion_usd
+FROM rental r
+INNER JOIN customer c ON r.customer_id = c.customer_id
+INNER JOIN address a ON c.address_id = a.address_id
+INNER JOIN city ci ON a.city_id = ci.city_id
+INNER JOIN country co ON ci.country_id = co.country_id
+INNER JOIN inventory i ON r.inventory_id = i.inventory_id
+INNER JOIN film f ON i.film_id = f.film_id
+WHERE r.return_date IS NULL
+ORDER BY f.replacement_cost DESC, r.rental_date ASC;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 4 (En BD: pagila): Top 10 Actores Más Taquilleros
+-- ============================================================================
+WITH taquilla_actor AS (
+    SELECT
+        ac.actor_id,
+        INITCAP(ac.first_name || ' ' || ac.last_name) AS nombre_actor,
+        COUNT(DISTINCT fa.film_id) AS peliculas_participadas,
+        COUNT(r.rental_id) AS total_alquileres_generados,
+        ROUND(COALESCE(SUM(p.amount), 0), 2) AS recaudacion_total_usd
+    FROM actor ac
+    INNER JOIN film_actor fa ON ac.actor_id = fa.actor_id
+    INNER JOIN film f ON fa.film_id = f.film_id
+    LEFT JOIN inventory i ON f.film_id = i.film_id
+    LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY ac.actor_id, ac.first_name, ac.last_name
+    HAVING COUNT(DISTINCT fa.film_id) > 25
+)
+SELECT *
+FROM taquilla_actor
+ORDER BY recaudacion_total_usd DESC
+LIMIT 10;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 5 (En BD: pagila): Análisis de Arreglos special_features
+-- ============================================================================
+SELECT
+    f.rating AS clasificacion_mpaa,
+    COUNT(*) AS total_peliculas,
+    COUNT(*) FILTER (
+        WHERE f.special_features @> ARRAY['Behind the Scenes']
+    ) AS con_behind_the_scenes,
+    ROUND(
+        AVG(f.replacement_cost) FILTER (
+            WHERE f.special_features @> ARRAY['Behind the Scenes']
+        ), 2
+    ) AS costo_reemplazo_promedio_usd
+FROM film f
+GROUP BY f.rating
+ORDER BY total_peliculas DESC;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 6 (En esquema: musicbrainz_lab): 10,000 Grabaciones
+-- ============================================================================
+SET search_path TO musicbrainz_lab, public;
+
+INSERT INTO recording (name, length_ms, isrc)
+SELECT
+    'Track Experimental Andino #' || g AS name,
+    120000 + ((g * 137) % 300000) AS length_ms,
+    'ECYAV' || LPAD(g::TEXT, 7, '0') AS isrc
+FROM generate_series(1, 10000) AS g
+ON CONFLICT (isrc) DO NOTHING;
+
+SELECT
+    CASE
+        WHEN length_ms < 180000 THEN '1. Corta (< 3 min)'
+        WHEN length_ms BETWEEN 180000 AND 300000 THEN '2. Estándar (3 a 5 min)'
+        ELSE '3. Extendida (> 5 min)'
+    END AS segmento_duracion,
+    COUNT(*) AS cantidad_grabaciones,
+    ROUND(AVG(length_ms) / 1000.0, 1) AS promedio_segundos
+FROM recording
+GROUP BY 1
+ORDER BY 1;
+```
+
+</details>
+
+---
+
 ## 📊 9. Rúbrica de Evaluación Formativa y Autoevaluación
 
 ### 9.1. Rúbrica de Evaluación (RdA 2 y RdA 4)

@@ -150,7 +150,57 @@ Para el desarrollo de los talleres prácticos de la asignatura se requiere el si
 
 ---
 
-## 📚 8. Bibliografía Oficial del PEA
+## 🗄️ 8. Bases de Datos de Referencia para Laboratorios Reales
+
+Además de los escenarios guiados propios de cada clase, a lo largo de las **9 semanas** se integran prácticas avanzadas, análisis de rendimiento y laboratorios utilizando las **3 bases de datos estándar de la industria en PostgreSQL**:
+
+| Base de Datos | Escala y Volumen | Propósito Pedagógico Principal | Enlace Oficial |
+| :--- | :--- | :--- | :--- |
+| **1. Employees** | **~3.919.015 registros** (~333 MB instalada, 6 tablas: `employees`, `departments`, `dept_emp`, `dept_manager`, `titles`, `salaries`). | **Primera elección para rendimiento:** Índices B-Tree/compuestos/parciales, `JOIN` masivos, agregaciones analíticas, lectura de `EXPLAIN (ANALYZE, BUFFERS)` y optimización de consultas. | [Repositorio de bases de ejemplo de Neon](https://github.com/neondatabase/postgres-sample-dbs) |
+| **2. Pagila** | **~62.322 filas** (33 tablas/particiones: `film`, `actor`, `inventory`, `rental`, `payment`, `customer`, `staff`, `store`, `address`, `city`, `country`, `category`, etc.). | **Elección para conceptos avanzados:** Diseño relacional normalizado, vistas, funciones y procedimientos en `PL/pgSQL`, triggers, particionamiento de tablas, transacciones concurrentes y seguridad (Roles/RLS). | [Pagila en GitHub](https://github.com/xzilla/pagila) / [Neon Sample DBs](https://github.com/neondatabase/postgres-sample-dbs) |
+| **3. MusicBrainz** | **Gran escala (Millones de entidades)** (`artist`, `recording`, `release`, `release_group`, `track`, `area`, catálogos y tablas de relaciones polimórficas `l_*`). | **Laboratorio de gran escala:** Esquema empresarial de metadatos musicales, tablas catálogo de alta normalización, asociaciones polimórficas reales (`l_artist_recording`, `l_artist_release`) y búsquedas de texto a gran escala. | [Documentación de MusicBrainz Database](https://musicbrainz.org/doc/MusicBrainz_Database) |
+
+### 🚀 Guía Rápida de Instalación en PostgreSQL
+
+```bash
+# =========================================================================
+# 1. INSTALACIÓN DE EMPLOYEES (~3.9 millones de registros - Neon Sample DB)
+# =========================================================================
+createdb -U postgres employees
+curl -L https://raw.githubusercontent.com/neondatabase/postgres-sample-dbs/main/employees.sql.gz -o employees.sql.gz
+gunzip -c employees.sql.gz | psql -U postgres -d employees
+
+# =========================================================================
+# 2. INSTALACIÓN DE PAGILA (33 tablas / Negocio de alquiler de películas)
+# =========================================================================
+createdb -U postgres pagila
+git clone https://github.com/xzilla/pagila.git
+psql -U postgres -d pagila -f pagila/pagila-schema.sql
+psql -U postgres -d pagila -f pagila/pagila-insert-data.sql
+
+# =========================================================================
+# 3. MUSICBRAINZ (Despliegue con Docker o esquema de estudio en clase)
+# =========================================================================
+# Para entorno completo: https://github.com/metabrainz/musicbrainz-docker
+# Nota: Cada clase incluye también scripts DDL/DML autocontenidos del núcleo
+# de MusicBrainz para ejecutar prácticas inmediatas sin descargar decenas de GB.
+```
+
+### 🧭 Mapa de Uso de las 3 Bases de Datos por Semana
+
+- **Semana 1:** Ingeniería inversa y modelado lógico de **Pagila**, **Employees** (tablas históricas temporales) y **MusicBrainz** (tablas catálogo `artist_type`, `area_type` y enlaces polimórficos `l_artist_recording`).
+- **Semana 2:** Consultas SQL avanzadas (`JOIN` múltiples, `GROUP BY`, `HAVING`, `FILTER`, subconsultas y CTEs), carga masiva y generación de consultas con IA (VS Code Copilot/ChatGPT) sobre **Employees**, **Pagila** y **MusicBrainz**.
+- **Semana 3:** Benchmarking real sobre los **3,9 millones de registros de `Employees`** (`EXPLAIN ANALYZE` con y sin índices), análisis de vistas nativas e índices `GIN` (`tsvector`) en **Pagila** y optimización en **MusicBrainz**.
+- **Semana 4:** Simulacro y casos prácticos de evaluación del Primer Parcial sobre **Employees** y **Pagila**.
+- **Semana 5:** Análisis de funciones nativas de **Pagila** (`get_customer_balance`, `inventory_in_stock`, `film_in_stock`) y creación de nuevas funciones y procedimientos almacenados en **Pagila**, **Employees** y **MusicBrainz**.
+- **Semana 6:** Estudio de triggers nativos de **Pagila** (`last_updated`, `film_fulltext_trigger`) e implementación de triggers de validación e historial en **Pagila**, **Employees** y **MusicBrainz**.
+- **Semana 7:** Triggers empresariales avanzados (auditoría `JSONB`, control de stock de alquileres en `inventory`/`rental`, control presupuestario en `salaries` y vistas actualizables `INSTEAD OF`) sobre **Pagila** y **Employees**.
+- **Semana 8:** Laboratorio de transacciones (`COMMIT`, `ROLLBACK`, `SAVEPOINT`), bloqueos pesimistas (`FOR UPDATE`) al alquilar el último ejemplar en **Pagila**, y matriz de Roles, Usuarios y *Row-Level Security (RLS)* por tienda (`store_id`) y departamento (`dept_no`) en **Pagila** y **Employees**.
+- **Semana 9:** Caso integrador final y evaluación práctica sobre **Employees**, **Pagila** y **MusicBrainz**.
+
+---
+
+## 📚 9. Bibliografía Oficial del PEA
 
 ### Bibliografía Básica
 - **Bagui, S., & Earp, R. (2011).** *Database Design Using Entity-Relationship Diagrams* (2nd ed.). CRC Press. *(Disponible en Biblioteca física)*.
@@ -168,3 +218,7 @@ Para el desarrollo de los talleres prácticos de la asignatura se requiere el si
 - Documentación Oficial de PostgreSQL: [https://www.postgresql.org/docs/](https://www.postgresql.org/docs/)
 - PostgreSQL Tutorial: [https://www.postgresqltutorial.com/](https://www.postgresqltutorial.com/)
 - W3Schools SQL & PostgreSQL: [https://www.w3schools.com/postgresql/](https://www.w3schools.com/postgresql/)
+- Repositorio de Bases de Ejemplo de Neon (`Employees`, `Pagila`): [https://github.com/neondatabase/postgres-sample-dbs](https://github.com/neondatabase/postgres-sample-dbs)
+- Repositorio Oficial de Pagila: [https://github.com/xzilla/pagila](https://github.com/xzilla/pagila)
+- Documentación de la Base de Datos MusicBrainz: [https://musicbrainz.org/doc/MusicBrainz_Database](https://musicbrainz.org/doc/MusicBrainz_Database)
+

@@ -742,6 +742,498 @@ RESET ROLE;
 
 ---
 
+## 🌐 Laboratorio Real de Transacciones, Concurrencia y Seguridad (RBAC + RLS) sobre Pagila, Employees y MusicBrainz
+
+En esta sección llevamos los conceptos de **Transacciones ACID, Concurrencia MVCC y Seguridad DCL/RLS** directamente a nuestras **3 bases de datos reales de producción**:
+- **[Pagila (`pagila`)](https://github.com/xzilla/pagila):** 33 tablas (~62.322 filas) de alquiler de películas.
+- **[Employees (`employees`)](https://github.com/neondatabase/postgres-sample-dbs):** 6 tablas (~3.919.015 filas, 333 MB) de recursos humanos y salarios.
+- **[MusicBrainz (`musicbrainz`)](https://musicbrainz.org/doc/MusicBrainz_Database):** Esquema global de metadatos musicales.
+
+---
+
+### A. Simulación de Concurrencia en 2 Terminales sobre `Pagila`
+
+#### 1. Caso Real: "El Último DVD en Tienda" (`inventory_id = 1`)
+Imagina el sábado a las 20:00 en la Tienda 1 de `Pagila`. Solo queda una copia física (`inventory_id = 1`, película *ACADEMY DINOSAUR*). Dos empleados en mostradores distintos (`staff_id = 1` Mike Hillyer y `staff_id = 2` Jon Stephens) escanean el mismo código de barras casi al mismo instante para alquilarlo a dos clientes distintos (`customer_id = 1` y `customer_id = 2`).
+
+Si no usamos bloqueo pesimista (`FOR UPDATE NOWAIT`), ambos empleados consultarán si el DVD está disponible, ambos verán que sí y ambos insertarán en `rental`, generando un doble alquiler imposible físicamente.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S1 as "Terminal 1 (Staff 1 - Mike)"
+    participant PG as "PostgreSQL (Pagila: inventory & rental)"
+    participant S2 as "Terminal 2 (Staff 2 - Jon)"
+
+    S1->>PG: BEGIN; SELECT * FROM inventory WHERE inventory_id = 1 FOR UPDATE NOWAIT;
+    Note over PG: Staff 1 adquiere bloqueo exclusivo sobre inventory_id = 1
+    S2->>PG: BEGIN; SELECT * FROM inventory WHERE inventory_id = 1 FOR UPDATE NOWAIT;
+    PG-->>S2: ERROR 55P03: could not obtain lock on row in relation "inventory"
+    Note over S2: Falla rápido sin colgar la caja registradora (ROLLBACK)
+    S1->>PG: INSERT INTO rental (...) RETURNING rental_id;
+    S1->>PG: SAVEPOINT sp_antes_de_pago;
+    S1->>PG: INSERT INTO payment (...);
+    S1->>PG: COMMIT;
+    Note over PG: Alquiler y cobro confirmados atómicamente y bloqueo liberado
+```
+
+##### Ejecución Paso a Paso en Dos Terminales (`psql` o DBeaver)
+
+| Paso | 🟦 Terminal 1 (Cajero Mike — `staff_id = 1`) | 🟧 Terminal 2 (Cajero Jon — `staff_id = 2`) |
+| :---: | :--- | :--- |
+| **1** | `BEGIN;` | `BEGIN;` |
+| **2** | `SELECT inventory_id, film_id FROM public.inventory WHERE inventory_id = 1 FOR UPDATE NOWAIT;` *(Obtiene el bloqueo)* | `SELECT inventory_id, film_id FROM public.inventory WHERE inventory_id = 1 FOR UPDATE NOWAIT;` *(Lanza `ERROR: could not obtain lock on row` de inmediato)* |
+| **3** | `INSERT INTO public.rental (rental_date, inventory_id, customer_id, staff_id) VALUES (NOW(), 1, 1, 1) RETURNING rental_id;` | `ROLLBACK;` *(Libera su transacción abortada)* |
+| **4** | `SAVEPOINT sp_registro_pago;` | — |
+| **5** | `INSERT INTO public.payment (customer_id, staff_id, rental_id, amount, payment_date) VALUES (1, 1, currval('rental_rental_id_seq'), 4.99, NOW());` | — |
+| **6** | `COMMIT;` *(Persiste en WAL el alquiler y el pago)* | — |
+
+---
+
+#### 2. Simulación y Prevención de *Deadlock* en `Pagila` (`customer` vs `rental`)
+Observa cómo se produce un interbloqueo real en `Pagila` cuando un proceso actualiza primero `customer` y luego `rental`, mientras otro proceso actualiza primero `rental` y luego `customer`:
+
+```sql
+-- ============================================================================
+-- REPRODUCCIÓN Y RESOLUCIÓN DE DEADLOCK EN PAGILA
+-- ============================================================================
+-- [TERMINAL 1] Actualiza primero al cliente 1 y luego su alquiler 1:
+BEGIN;
+UPDATE public.customer SET last_update = NOW() WHERE customer_id = 1;
+-- (Ahora ejecuta el primer UPDATE en Terminal 2 antes de continuar)
+UPDATE public.rental   SET last_update = NOW() WHERE rental_id = 1; -- Espera a Terminal 2
+
+-- [TERMINAL 2] Actualiza en orden INVERSO (primero rental 1 y luego customer 1):
+BEGIN;
+UPDATE public.rental   SET last_update = NOW() WHERE rental_id = 1;
+UPDATE public.customer SET last_update = NOW() WHERE customer_id = 1;
+-- Resultado tras 1 segundo (deadlock_timeout):
+-- ERROR: deadlock detected (SQLSTATE 40P01)
+
+-- ✅ SOLUCIÓN PROFESIONAL: Establecer una jerarquía fija de bloqueo de tablas
+-- Siempre bloquear/actualizar en orden: 1º customer -> 2º inventory -> 3º rental -> 4º payment.
+```
+
+---
+
+### B. Transacciones Masivas y Aislamiento `REPEATABLE READ` sobre `Employees` (3,9M Filas)
+
+En la base `employees` (`2.844.047` registros en `salaries`), el área de Finanzas necesita generar un **cierre contable de nómina** que ejecuta múltiples consultas agregadas (gasto salarial por departamento, gasto salarial por cargo `titles` y promedio general). Si Finanzas usa el nivel por defecto (`READ COMMITTED`) y a mitad del reporte Recursos Humanos aplica un aumento salarial del 5% al departamento `'d005'` (*Development*), la primera consulta del reporte tendrá los sueldos antiguos y la segunda consulta tendrá los sueldos nuevos, **descuadrando el balance general**.
+
+La solución en PostgreSQL sin bloquear a Recursos Humanos (gracias a **MVCC**) es encapsular todo el reporte en una transacción `REPEATABLE READ READ ONLY`:
+
+```sql
+-- ============================================================================
+-- EMPLOYEES (3.9M FILAS): REPORTE MULTICONSULTA CONSISTENTE CON SNAPSHOT MVCC
+-- ============================================================================
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+
+-- Consulta 1: Nómina vigente total por departamento
+SELECT d.dept_no,
+       d.dept_name,
+       COUNT(s.emp_no) AS empleados_activos,
+       SUM(s.salary)   AS masa_salarial_anual,
+       ROUND(AVG(s.salary), 2) AS salario_promedio
+  FROM employees.departments d
+  JOIN employees.dept_emp de ON de.dept_no = d.dept_no AND de.to_date = DATE '9999-01-01'
+  JOIN employees.salaries s  ON s.emp_no = de.emp_no   AND s.to_date  = DATE '9999-01-01'
+ GROUP BY d.dept_no, d.dept_name
+ ORDER BY masa_salarial_anual DESC;
+
+-- Aunque otra terminal haga UPDATE e incluso COMMIT sobre employees.salaries en este instante,
+-- la siguiente consulta verá EXACTAMENTE la misma fotografía (snapshot) del milisegundo inicial:
+
+-- Consulta 2: Cuadre global de masa salarial vigente
+SELECT COUNT(*) AS total_empleados_vigentes,
+       SUM(salary) AS suma_global_exacta
+  FROM employees.salaries
+ WHERE to_date = DATE '9999-01-01';
+
+COMMIT;
+```
+
+---
+
+### C. Arquitectura de Roles, Usuarios y *Row-Level Security (RLS)* en `Pagila`, `Employees` y `MusicBrainz`
+
+#### 1. Seguridad Multitienda con RLS en `Pagila` (`store_id = 1` vs `store_id = 2`)
+En `Pagila` existen dos tiendas (`store_id = 1` atendida por `staff_id = 1`, y `store_id = 2` atendida por `staff_id = 2`). Implementaremos una arquitectura donde cada empleado solo pueda ver y modificar los alquileres (`rental`) gestionados por su propio usuario de personal:
+
+```sql
+-- ============================================================================
+-- SEGURIDAD RBAC + RLS EN PAGILA (AISLAMIENTO POR EMPLEADO / TIENDA)
+-- ============================================================================
+DO $$
+BEGIN
+    DROP ROLE IF EXISTS usr_staff_1, usr_staff_2, usr_auditor_pagila,
+                        rol_cajero_pagila, rol_gerente_tienda, rol_auditor_pagila;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- 1. Roles de Grupo (NOLOGIN)
+CREATE ROLE rol_cajero_pagila  NOLOGIN INHERIT;
+CREATE ROLE rol_gerente_tienda NOLOGIN INHERIT;
+CREATE ROLE rol_auditor_pagila NOLOGIN INHERIT;
+
+-- 2. Usuarios de Personal (el número final coincide con su staff_id en Pagila)
+CREATE USER usr_staff_1        WITH PASSWORD 'PagilaStaff1#2026' CONNECTION LIMIT 3;
+CREATE USER usr_staff_2        WITH PASSWORD 'PagilaStaff2#2026' CONNECTION LIMIT 3;
+CREATE USER usr_auditor_pagila WITH PASSWORD 'PagilaAudit#2026'  CONNECTION LIMIT 1 VALID UNTIL '2026-12-31';
+
+GRANT rol_cajero_pagila  TO usr_staff_1, usr_staff_2;
+GRANT rol_auditor_pagila TO usr_auditor_pagila;
+
+-- 3. Permisos DCL Granulares
+GRANT USAGE ON SCHEMA public TO rol_cajero_pagila, rol_gerente_tienda, rol_auditor_pagila;
+
+GRANT SELECT ON public.film, public.inventory, public.customer TO rol_cajero_pagila;
+GRANT SELECT, INSERT, UPDATE (return_date, last_update) ON public.rental TO rol_cajero_pagila;
+GRANT SELECT, INSERT ON public.payment TO rol_cajero_pagila;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO rol_cajero_pagila;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO rol_auditor_pagila;
+
+-- 4. Row-Level Security (RLS) sobre la tabla rental
+ALTER TABLE public.rental ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pol_pagila_rental_cajero ON public.rental;
+CREATE POLICY pol_pagila_rental_cajero
+    ON public.rental
+    FOR ALL
+    TO rol_cajero_pagila
+    USING (
+        staff_id = CASE current_user
+                       WHEN 'usr_staff_1' THEN 1
+                       WHEN 'usr_staff_2' THEN 2
+                       ELSE -1
+                   END
+    )
+    WITH CHECK (
+        staff_id = CASE current_user
+                       WHEN 'usr_staff_1' THEN 1
+                       WHEN 'usr_staff_2' THEN 2
+                       ELSE -1
+                   END
+    );
+
+DROP POLICY IF EXISTS pol_pagila_rental_auditor ON public.rental;
+CREATE POLICY pol_pagila_rental_auditor
+    ON public.rental
+    FOR SELECT
+    TO rol_auditor_pagila, rol_gerente_tienda
+    USING (TRUE);
+```
+
+---
+
+#### 2. Blindaje de Nómina Confidencial en `Employees` y Catálogo Público en `MusicBrainz`
+
+```sql
+-- ============================================================================
+-- SEGURIDAD DE DATOS CONFIDENCIALES EN EMPLOYEES Y MUSICBRAINZ
+-- ============================================================================
+DO $$
+BEGIN
+    DROP ROLE IF EXISTS usr_analista_rrhh, usr_empleado_portal,
+                        rol_rrhh_nomina, rol_directorio_interno, rol_editor_musicbrainz;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+CREATE ROLE rol_directorio_interno NOLOGIN INHERIT;
+CREATE ROLE rol_rrhh_nomina        NOLOGIN INHERIT;
+CREATE ROLE rol_editor_musicbrainz NOLOGIN INHERIT;
+
+CREATE USER usr_empleado_portal WITH PASSWORD 'PortalEmp#2026' CONNECTION LIMIT 10;
+CREATE USER usr_analista_rrhh   WITH PASSWORD 'NominaRRHH#2026' CONNECTION LIMIT 2;
+
+GRANT rol_directorio_interno TO usr_empleado_portal;
+GRANT rol_rrhh_nomina        TO usr_analista_rrhh;
+
+-- Blindaje en Employees: nadie del público puede leer la tabla salaries (2.84M de sueldos)
+REVOKE ALL ON SCHEMA employees FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA employees FROM PUBLIC;
+
+GRANT USAGE ON SCHEMA employees TO rol_directorio_interno, rol_rrhh_nomina;
+
+-- El directorio interno solo puede ver nombres, departamentos y títulos (¡PROHIBIDO ver salaries y birth_date!)
+GRANT SELECT (emp_no, first_name, last_name, gender, hire_date)
+   ON employees.employees TO rol_directorio_interno;
+GRANT SELECT ON employees.departments, employees.dept_emp, employees.titles
+   TO rol_directorio_interno;
+
+-- Solo RRHH Nómina puede consultar e insertar salarios
+GRANT SELECT, INSERT, UPDATE ON employees.salaries, employees.employees TO rol_rrhh_nomina;
+
+-- Blindaje en MusicBrainz: rol editor puede insertar/actualizar metadatos pero NUNCA hacer DELETE ni TRUNCATE
+GRANT USAGE ON SCHEMA musicbrainz TO rol_editor_musicbrainz;
+GRANT SELECT, INSERT, UPDATE ON musicbrainz.artist, musicbrainz.recording, musicbrainz.release
+   TO rol_editor_musicbrainz;
+```
+
+---
+
+### D. Taller Práctico Adicional sobre `Pagila`, `Employees` y `MusicBrainz` (6 Retos con Solucionario)
+
+#### Reto Real 1 (`Pagila`): Procedimiento Transaccional de Alquiler y Pago Atómico con Bloqueo `FOR UPDATE NOWAIT`
+Crea el procedimiento `public.sp_pagila_alquilar_dvd(p_inventory_id INT, p_customer_id INT, p_staff_id INT, p_amount NUMERIC)` que:
+1. Bloquee la fila en `inventory` con `FOR UPDATE NOWAIT`.
+2. Verifique que el cliente esté activo (`activebool = TRUE`) y que el ejemplar no tenga un alquiler abierto (`return_date IS NULL` en `rental`).
+3. Inserte el alquiler en `rental` y, si `p_amount > 0`, inserte el cobro en `payment`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 1 (Pagila)</summary>
+
+```sql
+CREATE OR REPLACE PROCEDURE public.sp_pagila_alquilar_dvd(
+    p_inventory_id INTEGER,
+    p_customer_id  INTEGER,
+    p_staff_id     INTEGER,
+    p_amount       NUMERIC(5,2)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_activo    BOOLEAN;
+    v_rental_id INTEGER;
+BEGIN
+    -- 1. Bloquear el ejemplar físico sin esperar si otro cajero lo está procesando
+    PERFORM 1
+       FROM public.inventory
+      WHERE inventory_id = p_inventory_id
+        FOR UPDATE NOWAIT;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El ejemplar inventory_id % no existe.', p_inventory_id;
+    END IF;
+
+    -- 2. Validar cliente activo
+    SELECT activebool INTO v_activo
+      FROM public.customer
+     WHERE customer_id = p_customer_id;
+
+    IF v_activo IS DISTINCT FROM TRUE THEN
+        RAISE EXCEPTION 'El cliente ID % no existe o se encuentra inactivo.', p_customer_id;
+    END IF;
+
+    -- 3. Validar que el DVD no esté actualmente alquilado
+    IF EXISTS (
+        SELECT 1 FROM public.rental
+         WHERE inventory_id = p_inventory_id AND return_date IS NULL
+    ) THEN
+        RAISE EXCEPTION 'El ejemplar inventory_id % se encuentra actualmente alquilado.', p_inventory_id;
+    END IF;
+
+    -- 4. Registrar el alquiler
+    INSERT INTO public.rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+    VALUES (NOW(), p_inventory_id, p_customer_id, p_staff_id, NOW())
+    RETURNING rental_id INTO v_rental_id;
+
+    -- 5. Registrar el pago inicial
+    IF p_amount > 0 THEN
+        INSERT INTO public.payment (customer_id, staff_id, rental_id, amount, payment_date)
+        VALUES (p_customer_id, p_staff_id, v_rental_id, p_amount, NOW());
+    END IF;
+
+    RAISE NOTICE 'Alquiler registrado exitosamente (rental_id = %) para cliente %.', v_rental_id, p_customer_id;
+END;
+$$;
+```
+</details>
+
+---
+
+#### Reto Real 2 (`Pagila`): Cola de Procesamiento de Devoluciones Pendientes con `FOR UPDATE SKIP LOCKED`
+Escribe una consulta transaccional para operadores de call-center que tome el alquiler vencido más antiguo (`return_date IS NULL`) sin chocar con otros operadores conectados simultáneamente usando `FOR UPDATE SKIP LOCKED`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 2 (Pagila)</summary>
+
+```sql
+BEGIN;
+
+SELECT r.rental_id,
+       r.rental_date,
+       r.customer_id,
+       r.inventory_id
+  FROM public.rental r
+ WHERE r.return_date IS NULL
+ ORDER BY r.rental_date ASC
+ LIMIT 1
+   FOR UPDATE SKIP LOCKED;
+
+-- El operador gestiona la llamada con el cliente y registra observación o devolución,
+-- mientras el siguiente operador que ejecute la misma consulta recibirá el 2º alquiler más antiguo.
+COMMIT;
+```
+</details>
+
+---
+
+#### Reto Real 3 (`Employees`): Reajuste Salarial por Lotes con `SAVEPOINT` ante Tope Presupuestario
+Escribe un bloque transaccional sobre `employees` que aplique un incremento salarial a dos empleados (`emp_no = 10001` y `emp_no = 10002`), usando un `SAVEPOINT` intermedio para que, si el ajuste del segundo empleado excede un presupuesto máximo de `\$120,000`, se revierta únicamente el segundo cambio con `ROLLBACK TO SAVEPOINT` y se confirme el primero con `COMMIT`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 3 (Employees)</summary>
+
+```sql
+BEGIN;
+
+    -- 1. Incrementar en $1,000 el salario vigente del empleado 10001
+    UPDATE employees.salaries
+       SET salary = salary + 1000
+     WHERE emp_no = 10001
+       AND to_date = DATE '9999-01-01';
+
+    SAVEPOINT sp_ajuste_emp_10001;
+
+    -- 2. Intentar incrementar en $60,000 el salario vigente del empleado 10002
+    UPDATE employees.salaries
+       SET salary = salary + 60000
+     WHERE emp_no = 10002
+       AND to_date = DATE '9999-01-01';
+
+    -- 3. Si supera el techo de $120,000, deshacemos solo el cambio del empleado 10002
+    DO $$
+    DECLARE
+        v_sal INTEGER;
+    BEGIN
+        SELECT salary INTO v_sal
+          FROM employees.salaries
+         WHERE emp_no = 10002 AND to_date = DATE '9999-01-01';
+
+        IF v_sal > 120000 THEN
+            RAISE NOTICE 'El salario de emp_no 10002 ($%) excede el techo de $120,000. Ejecute ROLLBACK TO SAVEPOINT.', v_sal;
+        END IF;
+    END $$;
+
+    ROLLBACK TO SAVEPOINT sp_ajuste_emp_10001;
+    RELEASE SAVEPOINT sp_ajuste_emp_10001;
+
+COMMIT;
+```
+</details>
+
+---
+
+#### Reto Real 4 (`Pagila`): Política RLS en `customer` para Gerentes de Tienda
+Activa `ROW LEVEL SECURITY` en `public.customer` y crea una política para que el rol `rol_cajero_pagila` solo pueda ver y actualizar clientes pertenecientes a su misma tienda (`store_id = 1` para `usr_staff_1` y `store_id = 2` para `usr_staff_2`).
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 4 (Pagila)</summary>
+
+```sql
+ALTER TABLE public.customer ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pol_customer_por_tienda ON public.customer;
+CREATE POLICY pol_customer_por_tienda
+    ON public.customer
+    FOR ALL
+    TO rol_cajero_pagila
+    USING (
+        store_id = CASE current_user
+                       WHEN 'usr_staff_1' THEN 1
+                       WHEN 'usr_staff_2' THEN 2
+                       ELSE -1
+                   END
+    )
+    WITH CHECK (
+        store_id = CASE current_user
+                       WHEN 'usr_staff_1' THEN 1
+                       WHEN 'usr_staff_2' THEN 2
+                       ELSE -1
+                   END
+    );
+```
+</details>
+
+---
+
+#### Reto Real 5 (`Employees`): Función `SECURITY DEFINER` para Consulta de Promedio Salarial sin Exponer Sueldos Individuales
+El rol `rol_directorio_interno` no tiene permiso `SELECT` sobre `employees.salaries`. Crea una función `employees.fn_promedio_salarial_depto(p_dept_no CHAR(4))` con `SECURITY DEFINER` y `SET search_path = employees, pg_temp` que devuelva únicamente el promedio salarial del departamento (si tiene al menos 5 empleados activos) y otorga permiso `EXECUTE` a `rol_directorio_interno`.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 5 (Employees)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION employees.fn_promedio_salarial_depto(p_dept_no CHAR(4))
+RETURNS NUMERIC(12,2)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = employees, pg_temp
+AS $$
+DECLARE
+    v_conteo   BIGINT;
+    v_promedio NUMERIC(12,2);
+BEGIN
+    SELECT COUNT(*), ROUND(AVG(s.salary), 2)
+      INTO v_conteo, v_promedio
+      FROM employees.dept_emp de
+      JOIN employees.salaries s ON s.emp_no = de.emp_no
+     WHERE de.dept_no = p_dept_no
+       AND de.to_date = DATE '9999-01-01'
+       AND s.to_date  = DATE '9999-01-01';
+
+    IF v_conteo < 5 THEN
+        RAISE EXCEPTION 'Por privacidad estadística se requieren al menos 5 empleados activos en el departamento.';
+    END IF;
+
+    RETURN v_promedio;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION employees.fn_promedio_salarial_depto(CHAR) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION employees.fn_promedio_salarial_depto(CHAR) TO rol_directorio_interno;
+```
+</details>
+
+---
+
+#### Reto Real 6 (`MusicBrainz`): Procedimiento Anti-Deadlock para Fusión de Artistas Duplicados (`artist`)
+Cuando en `MusicBrainz` se detectan dos registros de artista duplicados (`p_artist_keep_id` y `p_artist_merge_id`), se deben reasignar todas las relaciones de `l_artist_recording` hacia `p_artist_keep_id`. Crea el procedimiento `musicbrainz.sp_fusionar_artistas_seguro(p_artist_keep_id INT, p_artist_merge_id INT)` que bloquee ambos artistas en `musicbrainz.artist` ordenados por `id ASC FOR UPDATE` antes de transferir sus grabaciones.
+
+<details>
+<summary>✅ Ver Solución Propuesta — Reto Real 6 (MusicBrainz)</summary>
+
+```sql
+CREATE OR REPLACE PROCEDURE musicbrainz.sp_fusionar_artistas_seguro(
+    p_artist_keep_id  INTEGER,
+    p_artist_merge_id INTEGER
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_artist_keep_id = p_artist_merge_id THEN
+        RAISE EXCEPTION 'Los IDs de artista a fusionar deben ser distintos.';
+    END IF;
+
+    -- Bloqueo determinista en orden ascendente de ID para prevenir Deadlocks
+    PERFORM 1
+       FROM musicbrainz.artist
+      WHERE id IN (p_artist_keep_id, p_artist_merge_id)
+      ORDER BY id ASC
+        FOR UPDATE;
+
+    -- Reasignar grabaciones del artista duplicado hacia el artista principal
+    UPDATE musicbrainz.l_artist_recording
+       SET entity0      = p_artist_keep_id,
+           last_updated = NOW()
+     WHERE entity0 = p_artist_merge_id;
+
+    -- Marcar el artista fusionado como finalizado
+    UPDATE musicbrainz.artist
+       SET ended        = TRUE,
+           comment      = LEFT(COALESCE(comment, '') || ' [Merged into ID ' || p_artist_keep_id || ']', 255),
+           last_updated = NOW()
+     WHERE id = p_artist_merge_id;
+
+    RAISE NOTICE 'Artista ID % fusionado exitosamente dentro del Artista ID %.', p_artist_merge_id, p_artist_keep_id;
+END;
+$$;
+```
+</details>
+
+---
+
 ## 📊 8. Rúbrica de Evaluación y Autoevaluación
 
 ### 8.1. Rúbrica Oficial del Laboratorio Práctico (APECD — 10 Puntos)

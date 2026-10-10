@@ -897,6 +897,519 @@ Aunque la Semana 1 concentra sus 5 horas en trabajo presencial y experimental co
 
 ---
 
+## 🌐 Caso Práctico con Bases de Datos Reales: Ingeniería Inversa y Modelado en Employees, Pagila y MusicBrainz
+
+Para consolidar el modelado lógico, la escritura de sentencias **DDL**, el diseño de **tablas catálogo** y la resolución de **relaciones polimórficas**, en esta asignatura trabajaremos transversalmente con **tres bases de datos reales de estándar industrial** ampliamente utilizadas por ingenieros de datos y DBAs de PostgreSQL a nivel mundial:
+
+| Base de Datos | Escala / Volumen | Dominio de Negocio | Repositorio Oficial | Aporte Pedagógico en Semana 1 (Modelado y DDL) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Employees** (`employees`) | **~3.919.015 filas** \| ~333 MB \| 6 tablas | Nómina corporativa, historial salarial y cargos por departamento | [Repositorio de bases de ejemplo de Neon](https://github.com/neondatabase/postgres-sample-dbs) | Claves primarias compuestas históricas `(emp_no, from_date)`, relaciones N:M con atributos temporales (`dept_emp`, `dept_manager`) y convención de vigencia `to_date = '9999-01-01'`. |
+| **2. Pagila** (`pagila`) | **~62.322 filas** \| 33 tablas/particiones | Cadena internacional de alquiler de películas (DVD/Streaming) | [Pagila en GitHub](https://github.com/xzilla/pagila) / [Colección Neon](https://github.com/neondatabase/postgres-sample-dbs) | Tablas catálogo geográficas y de clasificación (`language`, `category`, `country` ➔ `city` ➔ `address`), tipos personalizados (`DOMAINS`, `ENUM`), arreglos `TEXT[]`, `TSVECTOR` y particionamiento declarativo en `payment`. |
+| **3. MusicBrainz** (`musicbrainz`) | **Escala masiva** (millones de entidades musicales) | Enciclopedia abierta de metadatos musicales, artistas, obras y grabaciones | [Documentación de MusicBrainz Database](https://musicbrainz.org/doc/MusicBrainz_Database) | El caso real más emblemático del mundo en **Tablas Catálogo** (`artist_type`, `area_type`, `gender`, `link_type`) y **Asociaciones Polimórficas** (`l_artist_recording`, `l_artist_release`, `l_recording_work`). |
+
+---
+
+### 📥 Guía Rápida de Descarga y Restauración en PostgreSQL Local
+
+Puedes descargar e importar rápidamente `employees` y `pagila` desde el repositorio oficial de **Neon** ejecutando los siguientes comandos en tu terminal (macOS / Linux / Git Bash en Windows):
+
+```bash
+# ============================================================================
+# 1. DESCARGAR Y RESTAURAR "EMPLOYEES" (3.9 Millones de registros - 333 MB)
+# ============================================================================
+curl -L -O https://raw.githubusercontent.com/neondatabase/postgres-sample-dbs/main/employees.sql.gz
+createdb -U postgres employees
+gunzip -c employees.sql.gz | psql -U postgres -d employees
+
+# ============================================================================
+# 2. DESCARGAR Y RESTAURAR "PAGILA" (~62.322 filas - 33 tablas)
+# ============================================================================
+curl -L -O https://raw.githubusercontent.com/neondatabase/postgres-sample-dbs/main/pagila.sql.gz
+createdb -U postgres pagila
+gunzip -c pagila.sql.gz | psql -U postgres -d pagila
+```
+
+---
+
+### 🔍 Caso Real 1: Ingeniería Inversa de `Employees` (Modelado Temporal y Claves Compuestas)
+
+La base de datos **Employees** consta de **6 tablas altamente cohesionadas** pero que almacenan casi **4 millones de filas** (`salaries` por sí sola contiene `2,844,047` registros y `dept_emp` contiene `331,603` registros).
+
+#### Diagrama Entidad-Relación de `Employees`
+
+```mermaid
+erDiagram
+    EMPLOYEES ||--|{ DEPT_EMP : "trabaja_en (N:M historico)"
+    DEPARTMENTS ||--|{ DEPT_EMP : "integra"
+    EMPLOYEES ||--o{ DEPT_MANAGER : "dirige (N:M historico)"
+    DEPARTMENTS ||--|{ DEPT_MANAGER : "es_dirigido_por"
+    EMPLOYEES ||--|{ TITLES : "ostenta_cargo (1:N historico)"
+    EMPLOYEES ||--|{ SALARIES : "percibe_sueldo (1:N historico)"
+
+    EMPLOYEES {
+        integer emp_no PK
+        date birth_date
+        varchar first_name
+        varchar last_name
+        char gender "M o F"
+        date hire_date
+    }
+
+    DEPARTMENTS {
+        char dept_no PK "Ej: d001 a d009"
+        varchar dept_name UK "Catálogo de Departamentos"
+    }
+
+    DEPT_EMP {
+        integer emp_no PK, FK
+        char dept_no PK, FK
+        date from_date
+        date to_date "9999-01-01 = Vigente"
+    }
+
+    DEPT_MANAGER {
+        integer emp_no PK, FK
+        char dept_no PK, FK
+        date from_date
+        date to_date "9999-01-01 = Vigente"
+    }
+
+    TITLES {
+        integer emp_no PK, FK
+        varchar title PK
+        date from_date PK
+        date to_date
+    }
+
+    SALARIES {
+        integer emp_no PK, FK
+        integer salary
+        date from_date PK
+        date to_date
+    }
+```
+
+#### Lecciones Arquitectónicas de Modelado en `Employees`
+1. **Modelado de Series Históricas sin Sobrescritura (SCD Tipo 2):** En un sistema real de Recursos Humanos, cuando un empleado recibe un aumento salarial o cambia de departamento, **jamás se hace un `UPDATE` destructivo** sobre su salario anterior. En `salaries`, la clave primaria es compuesta: `PRIMARY KEY (emp_no, from_date)`. El registro vigente tiene por convención `to_date = '9999-01-01'`.
+2. **`departments` como Tabla Catálogo Corporativa:** La tabla `departments` actúa como un catálogo estandarizado con código corto (`dept_no CHAR(4)`, ej. `'d005'` para *Development*) y restricción `UNIQUE (dept_name)`.
+3. **Descomposición de Relaciones N:M:** Un empleado puede pasar por varios departamentos a lo largo de su carrera y un departamento tiene miles de empleados (`dept_emp`). Igualmente, un departamento tiene varios gerentes a lo largo del tiempo (`dept_manager`). Ambas relaciones N:M se resuelven con tablas asociativas que incorporan la ventana de vigencia `(from_date, to_date)`.
+
+---
+
+### 🎬 Caso Real 2: Ingeniería Inversa de `Pagila` (Tablas Catálogo, Tipos Avanzados y Particionamiento DDL)
+
+**Pagila** es la adaptación oficial para PostgreSQL de la base de datos *Sakila* de MySQL, modernizada para aprovechar características avanzadas del DDL de PostgreSQL.
+
+#### Diagrama Lógico del Núcleo de `Pagila` (Catálogo, Inventario y Alquileres)
+
+```mermaid
+erDiagram
+    LANGUAGE ||--o{ FILM : "idioma_original / doblaje"
+    FILM ||--|{ FILM_CATEGORY : "clasificada_en"
+    CATEGORY ||--|{ FILM_CATEGORY : "agrupa (Catalogo)"
+    FILM ||--|{ FILM_ACTOR : "actua_en"
+    ACTOR ||--|{ FILM_ACTOR : "participa"
+    FILM ||--o{ INVENTORY : "ejemplares_fisicos"
+    STORE ||--o{ INVENTORY : "almacena"
+    INVENTORY ||--o{ RENTAL : "se_alquila_en"
+    CUSTOMER ||--o{ RENTAL : "solicita"
+    RENTAL ||--o{ PAYMENT : "genera_cobro (Particionada)"
+    COUNTRY ||--|{ CITY : "contiene (Catalogo Pais)"
+    CITY ||--|{ ADDRESS : "ubica (Catalogo Ciudad)"
+    ADDRESS ||--o{ CUSTOMER : "reside"
+    ADDRESS ||--o{ STORE : "sede"
+
+    CATEGORY {
+        integer category_id PK
+        text name "Action, Sci-Fi, Classics..."
+        timestamptz last_update
+    }
+
+    LANGUAGE {
+        integer language_id PK
+        char name "English, Italian, Japanese..."
+        timestamptz last_update
+    }
+
+    FILM {
+        integer film_id PK
+        text title
+        year release_year "DOMAIN year (1901..2155)"
+        smallint language_id FK
+        smallint rental_duration
+        numeric rental_rate
+        mpaa_rating rating "ENUM (G, PG, PG-13, R, NC-17)"
+        text_array special_features "TEXT[]"
+        tsvector fulltext "Indice de busqueda textual"
+    }
+
+    PAYMENT {
+        integer payment_id
+        smallint customer_id FK
+        smallint staff_id FK
+        integer rental_id FK
+        numeric amount
+        timestamptz payment_date PK "PARTITION BY RANGE"
+    }
+```
+
+#### Lecciones Arquitectónicas de DDL en `Pagila`
+Al inspeccionar el DDL de `Pagila`, encontramos cuatro joyas de diseño en PostgreSQL:
+1. **Jerarquía Geográfica de Tablas Catálogo (3FN Pura):** En lugar de escribir el país y la ciudad como texto repetido dentro de `customer`, `staff` y `store`, Pagila normaliza la ubicación en 3 niveles: `country` (109 países) ➔ `city` (600 ciudades con `country_id`) ➔ `address` (603 direcciones con `city_id`). Si `customer`, `staff` y `store` necesitan dirección, las tres apuntan a `address_id` (evitando polimorfismo inverso).
+2. **Creación de Dominios Personalizados (`CREATE DOMAIN`):** Pagila define `CREATE DOMAIN year AS integer CONSTRAINT year_check CHECK (((VALUE >= 1901) AND (VALUE <= 2155)));`, reutilizando una regla de validación como si fuera un tipo de dato nativo.
+3. **Contraste entre `ENUM` (`mpaa_rating`) y Tablas Catálogo (`category`, `language`):** La clasificación por edades de la MPAA (`'G'`, `'PG'`, `'PG-13'`, `'R'`, `'NC-17'`) rara vez cambia en décadas, por lo que se modela como `ENUM`. En cambio, las categorías de películas (`category`) y los idiomas (`language`) requieren auditoría (`last_update`) y extensibilidad mediante `INSERT`, por lo que se modelan como **Tablas Catálogo**.
+4. **Tabla `payment` Particionada Declarativamente:** En la versión moderna de Pagila (de ahí las 33 tablas en Neon), la tabla `payment` está definida con `PARTITION BY RANGE (payment_date)`, dividiendo automáticamente los pagos en sub-tablas mensuales (`payment_p2022_01`, `payment_p2022_02`, ..., `payment_p2022_07`).
+
+---
+
+### 🎵 Caso Real 3: Arquitectura de `MusicBrainz` (El Estándar Mundial en Tablas Catálogo y Relaciones Polimórficas)
+
+El esquema de **[MusicBrainz Database](https://musicbrainz.org/doc/MusicBrainz_Database)** es estudiado en ingeniería de software porque resuelve uno de los dominios más complejos y polimórficos que existen: la industria musical global.
+
+#### 1. Cómo Diseña `MusicBrainz` sus Tablas Catálogo
+En MusicBrainz, prácticamente ningún atributo clasificador es texto libre. Todo está gobernado por tablas catálogo con soporte de jerarquía (`parent`) y orden visual (`child_order`):
+- **`artist_type`**: Clasifica si un `artist` es `'Person'`, `'Group'`, `'Orchestra'`, `'Choir'`, `'Character'` o `'Other'`.
+- **`gender`**: Catálogo de género (`'Male'`, `'Female'`, `'Non-binary'`, `'Not applicable'`).
+- **`area_type`**: Clasifica la tabla `area` en `'Country'`, `'Subdivision'`, `'City'`, `'Municipality'`.
+- **`release_group_primary_type`** y **`release_status`**: Clasifican si un lanzamiento es `'Album'`, `'Single'`, `'EP'` y si su estado es `'Official'`, `'Promotional'`, `'Bootleg'`.
+
+#### 2. Cómo Resuelve `MusicBrainz` el Polimorfismo ("Advanced Relationships" / Tablas `l_*`)
+En MusicBrainz, cualquier entidad núcleo (`artist`, `recording`, `release`, `work`, `area`, `url`) puede relacionarse con cualquier otra mediante cientos de roles semánticos (ej. *"el artista X tocó el bajo en la grabación Y"*, *"la grabación Y es una versión en vivo de la obra Z"*, *"el artista X grabó en el área W"*).
+
+En lugar de usar el antipatrón sin clave foránea (`entity0_type`, `entity0_id`), **MusicBrainz garantiza el 100% de integridad referencial** combinando:
+- Una tabla catálogo de tipos de vínculo (`link_type`) y una instancia de vínculo con fechas (`link`).
+- Tablas polimórficas tipadas de intersección (`l_artist_recording`, `l_artist_release`, `l_artist_work`, `l_recording_work`), o en variantes compactas, una tabla de relaciones con **Arco Exclusivo (`num_nonnulls`)**.
+
+```mermaid
+erDiagram
+    ARTIST_TYPE ||--o{ ARTIST : "clasifica (Catalogo)"
+    AREA_TYPE ||--o{ AREA : "clasifica (Catalogo)"
+    AREA ||--o{ ARTIST : "origen_geografico"
+    LINK_TYPE ||--o{ LINK : "define_semantica (Catalogo)"
+    LINK ||--o{ L_ARTIST_RECORDING : "instancia_temporal"
+    ARTIST ||--o{ L_ARTIST_RECORDING : "entity0 (FK Real)"
+    RECORDING ||--o{ L_ARTIST_RECORDING : "entity1 (FK Real)"
+    LINK ||--o{ L_ARTIST_RELEASE : "instancia_temporal"
+    ARTIST ||--o{ L_ARTIST_RELEASE : "entity0 (FK Real)"
+    RELEASE ||--o{ L_ARTIST_RELEASE : "entity1 (FK Real)"
+
+    ARTIST_TYPE {
+        integer id PK
+        varchar name "Person, Group, Orchestra..."
+        integer parent FK
+    }
+
+    ARTIST {
+        integer id PK
+        uuid gid UK "Identificador publico UUID"
+        varchar name
+        integer type FK "Ref a artist_type"
+        integer area FK "Ref a area"
+    }
+
+    LINK_TYPE {
+        integer id PK
+        varchar entity_type0 "artist, recording..."
+        varchar entity_type1 "recording, release, work..."
+        varchar name "instrument, producer, composer..."
+    }
+
+    L_ARTIST_RECORDING {
+        integer id PK
+        integer link FK
+        integer entity0 FK "Ref a artist(id)"
+        integer entity1 FK "Ref a recording(id)"
+    }
+```
+
+#### Script DDL Ejecutable: Laboratorio Local del Núcleo de `MusicBrainz`
+
+Dado que el volcado completo de producción de MusicBrainz supera los **60 GB**, ejecuta el siguiente script DDL oficial simplificado en tu PostgreSQL local para crear el esquema `musicbrainz_lab` y experimentar su arquitectura de catálogos y relaciones polimórficas:
+
+```sql
+-- ============================================================================
+-- LABORATORIO REAL: NÚCLEO ARQUITECTÓNICO DE MUSICBRAINZ EN POSTGRESQL
+-- ============================================================================
+DROP SCHEMA IF EXISTS musicbrainz_lab CASCADE;
+CREATE SCHEMA musicbrainz_lab;
+SET search_path TO musicbrainz_lab, public;
+
+-- 1. TABLAS CATÁLOGO DE MUSICBRAINZ (Con jerarquía recursiva parent_id)
+CREATE TABLE artist_type (
+    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    parent SMALLINT NULL REFERENCES artist_type(id),
+    child_order SMALLINT NOT NULL DEFAULT 0,
+    description TEXT
+);
+
+CREATE TABLE area_type (
+    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+CREATE TABLE release_status (
+    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- 2. ENTIDADES NÚCLEO (AREA, ARTIST, RECORDING, RELEASE, WORK)
+CREATE TABLE area (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    name VARCHAR(120) NOT NULL,
+    type SMALLINT NOT NULL REFERENCES area_type(id)
+);
+
+CREATE TABLE artist (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    name VARCHAR(200) NOT NULL,
+    sort_name VARCHAR(200) NOT NULL,
+    type SMALLINT NOT NULL REFERENCES artist_type(id),
+    area INT NULL REFERENCES area(id),
+    begin_date_year SMALLINT,
+    CHECK (begin_date_year IS NULL OR begin_date_year BETWEEN 1000 AND 2100)
+);
+
+CREATE TABLE work (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    name VARCHAR(250) NOT NULL,
+    iswc CHAR(15) NULL UNIQUE -- International Standard Musical Work Code
+);
+
+CREATE TABLE recording (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    name VARCHAR(250) NOT NULL,
+    length_ms INT NULL CHECK (length_ms > 0), -- Duración en milisegundos
+    isrc CHAR(12) NULL UNIQUE -- International Standard Recording Code
+);
+
+CREATE TABLE release (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    name VARCHAR(250) NOT NULL,
+    status SMALLINT NOT NULL REFERENCES release_status(id),
+    release_year SMALLINT NOT NULL
+);
+
+-- 3. ARQUITECTURA DE ENLACES Y POLIMORFISMO SEGURO DE CRÉDITOS ARTÍSTICOS
+CREATE TABLE link_type (
+    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(80) NOT NULL UNIQUE,
+    link_phrase VARCHAR(150) NOT NULL
+);
+
+-- Tabla Polimórfica Unificada de Créditos/Relaciones con Arco Exclusivo en PostgreSQL:
+-- Permite vincular a un ARTIST con un RECORDING, un RELEASE o un WORK con FK real
+CREATE TABLE artist_relationship_polymorphic (
+    relationship_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    artist_id BIGINT NOT NULL REFERENCES artist(id) ON DELETE CASCADE,
+    link_type_id SMALLINT NOT NULL REFERENCES link_type(id) ON DELETE RESTRICT,
+    -- Destinos polimórficos mutuamente excluyentes:
+    recording_id BIGINT NULL REFERENCES recording(id) ON DELETE CASCADE,
+    release_id BIGINT NULL REFERENCES release(id) ON DELETE CASCADE,
+    work_id BIGINT NULL REFERENCES work(id) ON DELETE CASCADE,
+    credited_as VARCHAR(200) NULL,
+
+    CONSTRAINT ck_mb_polymorphic_target CHECK (
+        num_nonnulls(recording_id, release_id, work_id) = 1
+    )
+);
+
+-- Poblar datos reales de ejemplo
+INSERT INTO artist_type (name, description) VALUES
+('Person', 'An individual human artist'),
+('Group', 'A band or musical ensemble'),
+('Orchestra', 'A large instrumental ensemble');
+
+INSERT INTO area_type (name) VALUES ('Country'), ('City');
+INSERT INTO release_status (name) VALUES ('Official'), ('Promotional'), ('Bootleg');
+INSERT INTO link_type (name, link_phrase) VALUES
+('composer', 'composed'),
+('lead vocals', 'performed lead vocals on'),
+('executive producer', 'was executive producer for');
+
+INSERT INTO area (name, type) VALUES ('Ecuador', 1), ('Quito', 2), ('United Kingdom', 1);
+
+INSERT INTO artist (name, sort_name, type, area, begin_date_year) VALUES
+('Julio Jaramillo', 'Jaramillo, Julio', 1, 1, 1935),
+('Guardarraya', 'Guardarraya', 2, 2, 1999),
+('Queen', 'Queen', 2, 3, 1970);
+
+INSERT INTO work (name, iswc) VALUES ('Nuestro Juramento', 'T-001.234.567-8'), ('Bohemian Rhapsody', 'T-009.876.543-2');
+INSERT INTO recording (name, length_ms, isrc) VALUES
+('Nuestro Juramento (Versión Original 1957)', 198000, 'EC-A01-57-00001'),
+('Bohemian Rhapsody (Remastered)', 354000, 'GB-UM7-10-29604');
+INSERT INTO release (name, status, release_year) VALUES ('A Night at the Opera', 1, 1975);
+
+-- Insertar relaciones polimórficas hacia RECORDING, WORK y RELEASE
+INSERT INTO artist_relationship_polymorphic (artist_id, link_type_id, recording_id, release_id, work_id, credited_as) VALUES
+(1, 2, 1, NULL, NULL, 'Julio Jaramillo - El Ruiseñor de América'),
+(3, 1, NULL, NULL, 2, 'Freddie Mercury / Queen'),
+(3, 3, NULL, 1, NULL, 'Queen');
+```
+
+---
+
+### 🏆 Taller Práctico Adicional sobre `Employees`, `Pagila` y `MusicBrainz` (6 Retos)
+
+Resuelve estos 6 desafíos prácticos de ingeniería inversa, auditoría de esquemas y extensión DDL sobre las tres bases de datos reales:
+
+#### 🔹 Reto Real 1 (Auditoría del Esquema `Employees` vía Diccionario de Datos)
+Conectado a la base de datos `employees`, escribe una consulta sobre `information_schema.table_constraints` e `information_schema.key_column_usage` que liste todas las tablas del esquema `public`, el nombre de sus restricciones (`PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`) y las columnas que las componen, demostrando por qué `salaries` y `titles` tienen claves primarias compuestas.
+
+#### 🔹 Reto Real 2 (Evolución DDL en `Employees`: Tabla Catálogo de Modalidades de Trabajo)
+En la base de datos `employees`, la empresa desea modernizar su esquema agregando una tabla catálogo `cat_work_modality` (`modality_id`, `code` `'ONSITE'`, `'HYBRID'`, `'REMOTE'`, `name`, `active`) y vincularla a la tabla histórica `dept_emp` mediante `ALTER TABLE` agregando la columna `modality_id SMALLINT` con valor por defecto `1` (`'ONSITE'`) y su respectiva `FOREIGN KEY`. Escribe las sentencias DDL correspondientes.
+
+#### 🔹 Reto Real 3 (Inspección de Tablas Catálogo y Particiones en `Pagila`)
+Conectado a la base de datos `pagila`, escribe una consulta al catálogo interno de PostgreSQL (`pg_inherits` y `pg_class`) que muestre todas las tablas hijas/particiones que pertenecen a la tabla padre `payment`, demostrando cómo está estructurado su particionamiento físico.
+
+#### 🔹 Reto Real 4 (Extensión Polimórfica en `Pagila`: Tabla `user_bookmarks`)
+El equipo de producto de **Pagila** quiere que los clientes (`customer`) puedan guardar en una lista de "Favoritos" (`user_bookmarks`) ya sea una **película** (`film`), un **actor** (`actor`) o una **categoría completa** (`category`), agregando una nota personal. Diseña e implementa en Pagila la tabla `user_bookmarks` aplicando el patrón de **Arco Exclusivo (`num_nonnulls = 1`)** con claves foráneas reales hacia `customer(customer_id)`, `film(film_id)`, `actor(actor_id)` y `category(category_id)`.
+
+#### 🔹 Reto Real 5 (Extensión de Catálogo en `MusicBrainz`: Formatos de Medio Físico/Digital)
+En el esquema `musicbrainz_lab`, crea la tabla catálogo `medium_format` (`id`, `name` como `'CD'`, `'12" Vinyl'`, `'Digital Media'`, `'Cassette'`, `year_introduced`, `has_discids BOOLEAN`) y la tabla `medium` que vincula un `release` con su `medium_format`, validando con un `CHECK` que `position > 0` y `track_count > 0`.
+
+#### 🔹 Reto Real 6 (Consulta Polimórfica Unificada en `MusicBrainz`)
+Sobre el esquema `musicbrainz_lab`, escribe una consulta SQL que cruce `artist_relationship_polymorphic` con `artist`, `artist_type`, `link_type`, `recording`, `release` y `work`, proyectando el nombre del artista, su tipo (`Person`/`Group`), la frase del vínculo (`link_phrase`), el tipo de entidad destino (`'RECORDING'`, `'RELEASE'` o `'WORK'`) y el nombre exacto de la obra/grabación/lanzamiento.
+
+<details>
+<summary>✅ Ver Solución Propuesta de los 6 Retos sobre Employees, Pagila y MusicBrainz</summary>
+
+```sql
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 1 (En BD: employees): Auditoría de PKs y FKs
+-- ============================================================================
+SELECT
+    tc.table_name AS tabla,
+    tc.constraint_name AS nombre_restriccion,
+    tc.constraint_type AS tipo_restriccion,
+    STRING_AGG(kcu.column_name, ', ' ORDER BY kcu.ordinal_position) AS columnas_involucradas
+FROM information_schema.table_constraints tc
+INNER JOIN information_schema.key_column_usage kcu
+    ON tc.constraint_name = kcu.constraint_name
+   AND tc.table_schema = kcu.table_schema
+WHERE tc.table_schema = 'public'
+GROUP BY tc.table_name, tc.constraint_name, tc.constraint_type
+ORDER BY tc.table_name, tc.constraint_type;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 2 (En BD: employees): Catálogo de Modalidad y ALTER TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS cat_work_modality (
+    modality_id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code VARCHAR(15) NOT NULL UNIQUE,
+    name VARCHAR(60) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+INSERT INTO cat_work_modality (code, name) VALUES
+('ONSITE', 'Presencial en sede corporativa'),
+('HYBRID', 'Esquema híbrido alternado'),
+('REMOTE', 'Teletrabajo 100% remoto')
+ON CONFLICT (code) DO NOTHING;
+
+ALTER TABLE dept_emp
+    ADD COLUMN IF NOT EXISTS modality_id SMALLINT NOT NULL DEFAULT 1,
+    ADD CONSTRAINT fk_dept_emp_modality FOREIGN KEY (modality_id)
+        REFERENCES cat_work_modality (modality_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 3 (En BD: pagila): Inspección de particiones de payment
+-- ============================================================================
+SELECT
+    parent.relname AS tabla_padre,
+    child.relname AS nombre_particion,
+    pg_get_expr(child.relpartbound, child.oid) AS rango_particion
+FROM pg_inherits i
+INNER JOIN pg_class parent ON i.inhparent = parent.oid
+INNER JOIN pg_class child ON i.inhrelid = child.oid
+WHERE parent.relname = 'payment'
+ORDER BY child.relname;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 4 (En BD: pagila): Tabla Polimórfica user_bookmarks
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS user_bookmarks (
+    bookmark_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    customer_id INT NOT NULL REFERENCES customer(customer_id) ON DELETE CASCADE,
+    film_id INT NULL REFERENCES film(film_id) ON DELETE CASCADE,
+    actor_id INT NULL REFERENCES actor(actor_id) ON DELETE CASCADE,
+    category_id INT NULL REFERENCES category(category_id) ON DELETE CASCADE,
+    personal_note VARCHAR(250),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_bookmarks_arco_exclusivo CHECK (
+        num_nonnulls(film_id, actor_id, category_id) = 1
+    ),
+    CONSTRAINT uq_bookmark_customer_film UNIQUE (customer_id, film_id),
+    CONSTRAINT uq_bookmark_customer_actor UNIQUE (customer_id, actor_id),
+    CONSTRAINT uq_bookmark_customer_category UNIQUE (customer_id, category_id)
+);
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 5 (En esquema: musicbrainz_lab): Catálogo medium_format
+-- ============================================================================
+SET search_path TO musicbrainz_lab, public;
+
+CREATE TABLE medium_format (
+    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    year_introduced SMALLINT NULL,
+    has_discids BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE medium (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    release_id BIGINT NOT NULL REFERENCES release(id) ON DELETE CASCADE,
+    format_id SMALLINT NOT NULL REFERENCES medium_format(id) ON DELETE RESTRICT,
+    position SMALLINT NOT NULL,
+    track_count SMALLINT NOT NULL,
+    CONSTRAINT ck_medium_position CHECK (position > 0),
+    CONSTRAINT ck_medium_track_count CHECK (track_count > 0),
+    CONSTRAINT uq_medium_release_pos UNIQUE (release_id, position)
+);
+
+INSERT INTO medium_format (name, year_introduced, has_discids) VALUES
+('12" Vinyl', 1948, FALSE),
+('CD', 1982, TRUE),
+('Digital Media', 1999, FALSE);
+
+INSERT INTO medium (release_id, format_id, position, track_count) VALUES (1, 1, 1, 12);
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 6 (En esquema: musicbrainz_lab): Consulta Polimórfica
+-- ============================================================================
+SELECT
+    a.name AS artista,
+    at.name AS tipo_artista,
+    lt.link_phrase AS relacion_semantica,
+    CASE
+        WHEN rel.recording_id IS NOT NULL THEN 'RECORDING (Grabación)'
+        WHEN rel.release_id IS NOT NULL THEN 'RELEASE (Álbum/Lanzamiento)'
+        WHEN rel.work_id IS NOT NULL THEN 'WORK (Obra Musical)'
+    END AS tipo_entidad_destino,
+    COALESCE(rec.name, rls.name, w.name) AS entidad_destino,
+    COALESCE(rel.credited_as, a.name) AS acreditado_como
+FROM artist_relationship_polymorphic rel
+INNER JOIN artist a ON rel.artist_id = a.id
+INNER JOIN artist_type at ON a.type = at.id
+INNER JOIN link_type lt ON rel.link_type_id = lt.id
+LEFT JOIN recording rec ON rel.recording_id = rec.id
+LEFT JOIN release rls ON rel.release_id = rls.id
+LEFT JOIN work w ON rel.work_id = w.id
+ORDER BY rel.relationship_id;
+```
+
+</details>
+
+---
+
 ## 📊 8. Rúbrica de Evaluación Formativa y Autoevaluación
 
 ### 8.1. Rúbrica de Evaluación de la Evidencia (RdA 1)

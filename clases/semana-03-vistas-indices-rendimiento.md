@@ -639,6 +639,353 @@ Al finalizar la Semana 3 concluimos la **Unidad 1: Sentencias SQL complejas, vis
 
 ---
 
+## 🌐 Benchmarking en Producción: Vistas e Índices sobre Employees (3.9 Millones de Filas), Pagila y MusicBrainz
+
+Para experimentar la diferencia real entre una base de datos no optimizada y una arquitectura de alto rendimiento (RdA 2), realizaremos pruebas de estrés y disección de vistas e índices sobre **[Employees (3,9 millones de filas)](https://github.com/neondatabase/postgres-sample-dbs)**, **[Pagila](https://github.com/xzilla/pagila)** y **[MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_Database)**.
+
+---
+
+### 🏎️ 1. Laboratorio de Alto Rendimiento sobre `Employees` (3.919.015 Filas / 333 MB)
+
+La tabla `salaries` de la base de datos `employees` contiene exactamente **2.844.047 registros** (~140 MB solo en datos de esa tabla). Por defecto, `salaries` solo tiene el índice de su clave primaria compuesta `(emp_no, from_date)`.
+
+¿Qué ocurre cuando Gerencia solicita buscar a los empleados vigentes (`to_date = '9999-01-01'`) cuyo salario anual supera los `$130,000` ordenados de mayor a menor?
+
+```mermaid
+flowchart TD
+    Q["Consulta SQL sobre salaries (2,844,047 filas)<br/>WHERE to_date = '9999-01-01' AND salary > 130000<br/>ORDER BY salary DESC"]
+    Q -->|"1. Estado Inicial (Sin Índice en salary)"| S1["🐢 Parallel Seq Scan + Sort<br/>Lee ~18,125 páginas de 8KB (~145 MB)<br/>Tiempo: ~145 ms - 260 ms"]
+    Q -->|"2. Con Índice Parcial (WHERE to_date = '9999-01-01')"| S2["⚡ Index Scan sobre idx_salaries_current<br/>Lee solo ~38 páginas de 8KB<br/>Tiempo: ~0.25 ms"]
+    Q -->|"3. Con Índice Parcial + Cubriente (INCLUDE emp_no)"| S3["🚀 Index Only Scan (0 accesos al Heap)<br/>Lee solo ~6 páginas del árbol B-Tree<br/>Tiempo: ~0.05 ms (¡3,000x más rápido!)"]
+```
+
+#### Demostración Paso a Paso en `Employees` (Ejecutable en Consola)
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: employees (2.84 Millones de filas en salaries)
+-- ============================================================================
+ANALYZE employees;
+ANALYZE salaries;
+ANALYZE titles;
+ANALYZE dept_emp;
+
+-- 1. PRUEBA BASE SIN ÍNDICE SECUNDARIO (Parallel Seq Scan sobre 2.84M de filas)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT emp_no, salary, from_date
+FROM salaries
+WHERE to_date = DATE '9999-01-01'
+  AND salary BETWEEN 130000 AND 160000
+ORDER BY salary DESC;
+-- Resultado típico sin índice:
+-- Gather Merge -> Sort -> Parallel Seq Scan on salaries
+-- Rows Removed by Filter: ~2,843,900 | Buffers: shared hit=18122 | Execution Time: ~165.40 ms
+
+-- 2. CREACIÓN DE UN ÍNDICE PARCIAL (Solo indexa los ~240,124 salarios vigentes,
+--    ignorando los 2.6 millones de salarios históricos vencidos)
+CREATE INDEX idx_salaries_current
+    ON salaries (salary DESC)
+    WHERE to_date = DATE '9999-01-01';
+
+-- 3. CREACIÓN DE UN ÍNDICE PARCIAL + CUBRIENTE (INCLUDE) PARA LOGRAR "INDEX ONLY SCAN"
+CREATE INDEX idx_salaries_current_covering
+    ON salaries (salary DESC)
+    INCLUDE (emp_no, from_date)
+    WHERE to_date = DATE '9999-01-01';
+
+-- 4. PRUEBA CON ÍNDICE PARCIAL CUBRIENTE
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT emp_no, salary, from_date
+FROM salaries
+WHERE to_date = DATE '9999-01-01'
+  AND salary BETWEEN 130000 AND 160000
+ORDER BY salary DESC;
+-- Resultado con índice:
+-- Index Only Scan using idx_salaries_current_covering on salaries
+-- Heap Fetches: 0 | Buffers: shared hit=4 | Execution Time: ~0.07 ms!
+```
+
+#### Vista Materializada sobre los 3.9 Millones de Registros de `Employees`
+Cuando un dashboard ejecutivo necesita consultar mil veces por hora las estadísticas salariales cruzando `departments`, `dept_emp`, `titles` y `salaries`, recalcular el `JOIN` sobre casi 4 millones de filas en cada petición HTTP saturaría la CPU del servidor. Observa cómo una **Vista Materializada (`MATERIALIZED VIEW`)** reduce el tiempo de **~850 ms a 0.04 ms**:
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: employees
+-- ============================================================================
+DROP MATERIALIZED VIEW IF EXISTS mv_resumen_salarial_departamento;
+
+CREATE MATERIALIZED VIEW mv_resumen_salarial_departamento AS
+SELECT
+    d.dept_no,
+    d.dept_name AS departamento,
+    t.title AS cargo,
+    COUNT(DISTINCT de.emp_no) AS empleados_vigentes,
+    ROUND(AVG(s.salary), 2) AS salario_promedio,
+    MIN(s.salary) AS salario_minimo,
+    MAX(s.salary) AS salario_maximo,
+    SUM(s.salary) AS masa_salarial_total
+FROM departments d
+INNER JOIN dept_emp de
+    ON d.dept_no = de.dept_no
+   AND de.to_date = DATE '9999-01-01'
+INNER JOIN salaries s
+    ON de.emp_no = s.emp_no
+   AND s.to_date = DATE '9999-01-01'
+INNER JOIN titles t
+    ON de.emp_no = t.emp_no
+   AND t.to_date = DATE '9999-01-01'
+GROUP BY d.dept_no, d.dept_name, t.title;
+
+-- Índice único obligatorio para refresco concurrente sin bloqueo
+CREATE UNIQUE INDEX idx_uq_mv_resumen_depto_cargo
+    ON mv_resumen_salarial_departamento (dept_no, cargo);
+
+-- Refresco concurrente en producción
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_resumen_salarial_departamento;
+
+-- Consulta instantánea (< 0.05 ms)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM mv_resumen_salarial_departamento
+ORDER BY masa_salarial_total DESC;
+```
+
+---
+
+### 🎬 2. Disección de Vistas e Índices Nativos en `Pagila`
+
+Una de las razones por las que **[Pagila](https://github.com/xzilla/pagila)** es el estándar de enseñanza en PostgreSQL es que ya trae preinstaladas **7 vistas de producción** y **múltiples tipos de índices (B-Tree y GIN/GIST)** listos para ser auditados.
+
+#### A. Análisis de las Vistas Nativas de `Pagila`: ¿Por qué `nicer_but_slower_film_list` es más lenta que `film_list`?
+
+Si consultas las vistas existentes en `pagila` (`SELECT viewname, definition FROM pg_views WHERE schemaname = 'public';`), encontrarás:
+1. **`sales_by_film_category`**: Agrupa ventas totales (`SUM(p.amount)`) por categoría de película.
+2. **`sales_by_store`**: Agrupa ventas por sede (`city || ',' || country`), administrador (`staff`) y tienda.
+3. **`customer_list`** y **`staff_list`**: Vistas de seguridad/simplificación que aplanan la jerarquía `customer ➔ address ➔ city ➔ country`.
+4. **`actor_info`**: Vista avanzada que agrupa para cada actor todas sus películas separadas por categoría.
+5. **`film_list` vs. `nicer_but_slower_film_list`**:
+   - `film_list` concatena los nombres de los actores en mayúsculas tal como vienen en la tabla: `GROUP_CONCAT(a.first_name || ' ' || a.last_name)`.
+   - `nicer_but_slower_film_list` invoca múltiples funciones escalares de manipulación de subcadenas (`UPPER`, `LOWER`, `SUBSTR`) por cada actor antes de agrupar para formatear `'PENELOPE GUINESS'` como `'Penelope Guiness'`, lo que incrementa el costo de CPU por fila antes de la agregación (hoy en PostgreSQL moderno esto se optimiza simplemente usando `INITCAP()`).
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: pagila
+-- Comparar planes de ejecución de las vistas nativas de Pagila
+-- ============================================================================
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM sales_by_film_category;
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM film_list;
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM nicer_but_slower_film_list;
+```
+
+#### B. Índices `GIN` y Full-Text Search en `Pagila` (`film.fulltext` y `special_features`)
+
+En la tabla `film` de Pagila existe la columna `fulltext TSVECTOR` que almacena los lexemas normalizados del título y la descripción de cada película, indexada mediante `film_fulltext_idx`. Además, podemos crear un índice **GIN** sobre el arreglo `special_features TEXT[]`:
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN LA BASE DE DATOS: pagila
+-- Uso de índices GIN para Full-Text Search (TSVECTOR) y Arreglos (TEXT[])
+-- ============================================================================
+
+-- 1. Búsqueda de texto completo ultrarrápida usando el índice sobre film.fulltext
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT film_id, title, description
+FROM film
+WHERE fulltext @@ to_tsquery('english', 'astronaut & drama');
+
+-- 2. Crear un índice GIN sobre el arreglo special_features para acelerar el operador @>
+CREATE INDEX IF NOT EXISTS idx_film_special_features_gin
+    ON film USING GIN (special_features);
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT film_id, title, special_features
+FROM film
+WHERE special_features @> ARRAY['Deleted Scenes', 'Behind the Scenes'];
+```
+
+---
+
+### 🎵 3. Indexación de Búsqueda Musical en `MusicBrainz`
+
+En **[MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_Database)** (y en nuestro esquema `musicbrainz_lab`), las búsquedas más frecuentes son por nombre de artista o título de canción ignorando mayúsculas/minúsculas (`LOWER(name)`) y por código internacional `ISRC`:
+
+```sql
+-- ============================================================================
+-- EJECUTAR EN EL ESQUEMA: musicbrainz_lab (con las 10,000 grabaciones cargadas)
+-- ============================================================================
+SET search_path TO musicbrainz_lab, public;
+ANALYZE recording;
+
+-- 1. ANTES DEL ÍNDICE FUNCIONAL: Seq Scan sobre las 10,002 grabaciones
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, name, length_ms, isrc
+FROM recording
+WHERE LOWER(name) = LOWER('Track Experimental Andino #8450');
+
+-- 2. CREAR ÍNDICE BASADO EN EXPRESIÓN LOWER(name)
+CREATE INDEX idx_mb_recording_name_lower
+    ON recording (LOWER(name));
+
+-- 3. DESPUÉS DEL ÍNDICE FUNCIONAL: Index Scan en ~0.05 ms
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, name, length_ms, isrc
+FROM recording
+WHERE LOWER(name) = LOWER('Track Experimental Andino #8450');
+```
+
+---
+
+### 🏆 Taller Práctico Adicional sobre `Employees`, `Pagila` y `MusicBrainz` (6 Retos de Benchmarking)
+
+#### 🔹 Reto Real 1 (`Employees` — Índice Compuesto en `titles` de 443,308 filas)
+En la base de datos `employees`, el departamento de Talento Humano ejecuta constantemente:
+```sql
+SELECT emp_no, title, from_date
+FROM titles
+WHERE title = 'Senior Engineer' AND to_date = DATE '9999-01-01'
+ORDER BY from_date DESC
+LIMIT 50;
+```
+1. Ejecuta `EXPLAIN (ANALYZE, BUFFERS)` sin índice adicional y registra el tiempo y los buffers leídos.
+2. Diseña y crea un **Índice Parcial o Compuesto** óptimo que permita resolver la consulta leyendo menos de 10 páginas de 8 KB sin ejecutar un nodo `Sort`.
+
+#### 🔹 Reto Real 2 (`Employees` — Índice Funcional para Búsqueda de Empleados por Nombre Completo)
+El buscador del portal interno ejecuta:
+```sql
+SELECT emp_no, first_name, last_name, hire_date
+FROM employees
+WHERE LOWER(first_name || ' ' || last_name) = 'georgi facello';
+```
+Mide el tiempo sobre las `300,024` filas de `employees` (`Seq Scan`), crea el índice basado en expresiones correspondiente y demuestra con `EXPLAIN (ANALYZE, BUFFERS)` el paso a `Index Scan`.
+
+#### 🔹 Reto Real 3 (`Pagila` — Creación de Vista con `WITH CHECK OPTION` para Películas Familiares)
+En `pagila`, crea una vista llamada `vw_peliculas_aptas_todo_publico` sobre la tabla `film` que muestre `(film_id, title, release_year, language_id, rental_duration, rental_rate, rating)` únicamente cuando `rating IN ('G', 'PG')` e incluya `WITH LOCAL CHECK OPTION`. Demuestra con una sentencia `UPDATE` comentada qué sucede si alguien intenta cambiar a través de la vista el `rating` de una película `'G'` a `'R'`.
+
+#### 🔹 Reto Real 4 (`Pagila` — Optimización de Alquileres Pendientes con Índice Parcial)
+En la tabla `rental` (`16,044` filas), solo `183` registros tienen `return_date IS NULL` (películas aún no devueltas).
+1. Ejecuta `EXPLAIN (ANALYZE, BUFFERS) SELECT rental_id, inventory_id, customer_id, rental_date FROM rental WHERE return_date IS NULL ORDER BY rental_date ASC;`.
+2. Crea un **Índice Parcial** `idx_rental_pendientes_devolucion` sobre `(rental_date ASC) WHERE return_date IS NULL;`.
+3. Compara el plan de ejecución y verifica el tamaño en KB del índice parcial con `pg_size_pretty(pg_relation_size('idx_rental_pendientes_devolucion'))`.
+
+#### 🔹 Reto Real 5 (`Pagila` — Materialización de la Vista `actor_info`)
+La vista nativa `actor_info` de Pagila es notoriamente costosa porque ejecuta subconsultas y agrupaciones de texto por cada actor y categoría.
+1. Mide cuánto tarda `EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM actor_info;`.
+2. Crea una **Vista Materializada** `mvw_actor_info_fast` basada en `SELECT * FROM actor_info;`, agrégale un índice único sobre `(actor_id)` y vuelve a medir el tiempo de lectura con `EXPLAIN (ANALYZE, BUFFERS)`.
+
+#### 🔹 Reto Real 6 (`Employees` y `Pagila` — Auditoría Global de Salud de Índices)
+Escribe una consulta administrativa sobre `pg_stat_user_indexes` y `pg_index` que liste todos los índices de la base de datos actual mostrando: nombre de la tabla, nombre del índice, si es único (`indisunique`), si es clave primaria (`indisprimary`), cuántas veces se ha escaneado (`idx_scan`), tamaño legible en disco (`pg_size_pretty`) y ordénalos del más pesado al más liviano.
+
+<details>
+<summary>✅ Ver Solución Propuesta de los 6 Retos sobre Employees, Pagila y MusicBrainz</summary>
+
+```sql
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 1 (En BD: employees): Índice Parcial/Compuesto en titles
+-- ============================================================================
+-- Antes del índice (~45 ms, Parallel Seq Scan + Sort):
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT emp_no, title, from_date
+FROM titles
+WHERE title = 'Senior Engineer' AND to_date = DATE '9999-01-01'
+ORDER BY from_date DESC
+LIMIT 50;
+
+-- Creación de Índice Parcial Compuesto:
+CREATE INDEX idx_titles_vigentes_cargo_fecha
+    ON titles (title, from_date DESC)
+    INCLUDE (emp_no)
+    WHERE to_date = DATE '9999-01-01';
+
+-- Después del índice (~0.06 ms, Index Only Scan, 0 Sort):
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT emp_no, title, from_date
+FROM titles
+WHERE title = 'Senior Engineer' AND to_date = DATE '9999-01-01'
+ORDER BY from_date DESC
+LIMIT 50;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 2 (En BD: employees): Índice Funcional Nombre Completo
+-- ============================================================================
+CREATE INDEX idx_employees_fullname_lower
+    ON employees (LOWER(first_name || ' ' || last_name));
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT emp_no, first_name, last_name, hire_date
+FROM employees
+WHERE LOWER(first_name || ' ' || last_name) = 'georgi facello';
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 3 (En BD: pagila): Vista Actualizable WITH CHECK OPTION
+-- ============================================================================
+CREATE OR REPLACE VIEW vw_peliculas_aptas_todo_publico AS
+SELECT
+    film_id,
+    title,
+    release_year,
+    language_id,
+    rental_duration,
+    rental_rate,
+    rating
+FROM film
+WHERE rating IN ('G', 'PG')
+WITH LOCAL CHECK OPTION;
+
+-- Prueba de bloqueo por violación del CHECK OPTION:
+-- UPDATE vw_peliculas_aptas_todo_publico SET rating = 'R' WHERE film_id = 1;
+-- ERROR: new row violates check option for view "vw_peliculas_aptas_todo_publico"
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 4 (En BD: pagila): Índice Parcial en rental (IS NULL)
+-- ============================================================================
+CREATE INDEX idx_rental_pendientes_devolucion
+    ON rental (rental_date ASC)
+    WHERE return_date IS NULL;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT rental_id, inventory_id, customer_id, rental_date
+FROM rental
+WHERE return_date IS NULL
+ORDER BY rental_date ASC;
+
+SELECT pg_size_pretty(pg_relation_size('idx_rental_pendientes_devolucion')) AS tamano_indice_parcial;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 5 (En BD: pagila): Materialización de actor_info
+-- ============================================================================
+DROP MATERIALIZED VIEW IF EXISTS mvw_actor_info_fast;
+
+CREATE MATERIALIZED VIEW mvw_actor_info_fast AS
+SELECT * FROM actor_info;
+
+CREATE UNIQUE INDEX idx_uq_mvw_actor_info_id
+    ON mvw_actor_info_fast (actor_id);
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvw_actor_info_fast;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM mvw_actor_info_fast WHERE actor_id = 10;
+
+-- ============================================================================
+-- SOLUCIÓN RETO REAL 6: Auditoría Global de Salud y Peso de Índices
+-- ============================================================================
+SELECT
+    s.schemaname AS esquema,
+    s.relname AS tabla,
+    s.indexrelname AS nombre_indice,
+    i.indisprimary AS es_pk,
+    i.indisunique AS es_unico,
+    s.idx_scan AS escaneos_realizados,
+    pg_size_pretty(pg_relation_size(s.indexrelid)) AS peso_en_disco
+FROM pg_stat_user_indexes s
+INNER JOIN pg_index i ON s.indexrelid = i.indexrelid
+ORDER BY pg_relation_size(s.indexrelid) DESC;
+```
+
+</details>
+
+---
+
 ## 📊 8. Rúbrica de Evaluación Formativa y Autoevaluación
 
 ### 8.1. Rúbrica de Evaluación de la Evidencia (RdA 2 — Semana 3)
