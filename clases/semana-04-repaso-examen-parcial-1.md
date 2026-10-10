@@ -1,0 +1,958 @@
+# 🎓 Semana 04: Repaso Integral de la Unidad 1 y Evaluación del Primer Parcial
+
+---
+
+## 📋 1. Portada y Ficha Técnica de la Sesión
+
+| Campo | Detalle Oficial |
+| :--- | :--- |
+| **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
+| **Carrera** | Tecnología Superior en Desarrollo de Software |
+| **Asignatura** | Base de Datos Avanzada |
+| **Código de Asignatura** | `DS4AC1-215` |
+| **Semestre / Periodo** | Segundo Semestre / 2026-II |
+| **Modalidad** | Dual |
+| **Unidad Didáctica** | Unidad 1: Sentencias SQL complejas, vistas e índices |
+| **Semana** | Semana 04 de 16 |
+| **Carga Horaria Semanal** | **ACD:** 2 horas \| **APECD:** 3 horas \| **Total:** 5 horas |
+| **Tema Central (PEA)** | Espacio de preguntas y respuestas para aclarar dudas (Repaso Integral U1) y Examen Parcial 1 |
+| **Resultado de Aprendizaje (RdA)** | Diseña e implementa estructuras de datos avanzadas, consultas complejas, vistas e índices para optimizar el acceso y manipulación de datos en un SGBD relacional. |
+| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver, Terminal `psql`, Git |
+
+---
+
+## 🎯 2. Objetivos de Aprendizaje, Competencias, Evidencias y Habilidades Blandas
+
+### 2.1 Objetivos de la Sesión
+1. **Consolidar los fundamentos teóricos y prácticos** de la Unidad 1 mediante una sesión intensiva de preguntas, respuestas y resolución de antipatrones comunes en SQL avanzado.
+2. **Integrar en un único caso empresarial real** el diseño lógico normalizado (3FN), el uso de tablas catálogo y asociaciones polimórficas, la generación de datos masivos (`generate_series`), las consultas analíticas complejas (`JOIN`, `GROUP BY`, `HAVING`, subconsultas, `CTE`), las funciones escalares, las vistas (simples y materializadas) y la indexación avanzada.
+3. **Evaluar objetivamente el desempeño individual** de cada estudiante en el Examen Parcial 1 bajo estándares de ingeniería de datos de nivel productivo en PostgreSQL.
+
+### 2.2 Matriz de Competencias y Evidencias
+
+| Componente | Descripción Aplicada a la Semana 04 |
+| :--- | :--- |
+| **Resultado de Aprendizaje (RdA 1)** | Construye consultas SQL complejas, vistas e índices sobre esquemas relacionales normalizados para garantizar integridad y alto rendimiento. |
+| **Competencia Específica** | Diagnostica cuellos de botella con `EXPLAIN ANALYZE`, diseña esquemas con restricciones declarativas estrictas y redacta consultas declarativas legibles mediante CTEs y funciones escalares. |
+| **Evidencia de Aprendizaje** | Archivo SQL ejecutable (`parcial1_apellido_nombre.sql`) y cuestionario técnico resuelto correspondientes al **Examen Parcial 1**. |
+| **Habilidades Blandas (PEA)** | Pensamiento crítico bajo presión de tiempo, atención al detalle sintáctico, honestidad académica y autocrítica técnica frente a planes de ejecución subóptimos. |
+
+---
+
+## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+
+| Fase | Tiempo | Componente | Actividad Pedagógica |
+| :--- | :---: | :---: | :--- |
+| **Fase 1** | `00:00 - 00:45` (45 min) | **ACD** | **Síntesis Arquitectónica Unidad 1:** Mapa conceptual integrador, repaso de normalización, tablas catálogo/polimórficas y flujo de evaluación lógica de SQL. |
+| **Fase 2** | `00:45 - 01:30` (45 min) | **ACD** | **Clínica de Código y FAQ:** Análisis en vivo de los 6 errores más frecuentes cometidos en las semanas 1 a 3 y cómo solucionarlos en PostgreSQL. |
+| **Fase 3** | `01:30 - 02:00` (30 min) | **ACD** | **Preparación de Entorno y Reglas del Examen:** Verificación de instancia local PostgreSQL, creación de base de datos limpia y lectura guiada del caso empresarial. |
+| **Fase 4** | `02:00 - 02:30` (30 min) | **APECD** | **Examen Parcial 1 - Parte 1:** Evaluación Teórica y Análisis de Planes de Ejecución (`EXPLAIN ANALYZE`). |
+| **Fase 5** | `02:30 - 03:15` (45 min) | **APECD** | **Examen Parcial 1 - Parte 2:** Modelamiento Lógico, Tablas Catálogo, Polimórficas e Implementación DDL. |
+| **Fase 6** | `03:15 - 04:15` (60 min) | **APECD** | **Examen Parcial 1 - Parte 3:** Poblamiento Masivo (`generate_series`) y Consultas SQL Complejas. |
+| **Fase 7** | `04:15 - 05:00` (45 min) | **APECD** | **Examen Parcial 1 - Parte 4:** Vistas, Vistas Materializadas, Optimización con Índices y Entrega del Script. |
+
+---
+
+## 📚 4. Desarrollo Teórico-Conceptual Profundo: Síntesis Ejecutiva de la Unidad 1 (ACD)
+
+Esta primera parte de la sesión (**2 horas ACD**) funciona como un espacio abierto de preguntas y respuestas apoyado en hojas de referencia rápida (*Cheat Sheets*) para despejar cualquier duda antes de iniciar la evaluación práctica.
+
+### 4.1 Mapa Conceptual Integrador de la Unidad 1
+
+```mermaid
+flowchart TD
+    U1["Unidad 1: SQL Complejo, Vistas e Índices"] --> S1["Semana 1: Modelado, Catálogos, Polimorfismo y Consultas"]
+    U1 --> S2["Semana 2: Funciones Escalares, Ingreso Masivo y Vistas"]
+    U1 --> S3["Semana 3: Vistas Materializadas e Índices Avanzados"]
+
+    S1 --> N3FN["Normalización 1FN, 2FN, 3FN"]
+    S1 --> CAT["Tablas Catálogo y Asociaciones Polimórficas"]
+    S1 --> QRY["JOINs, GROUP BY, HAVING, Subconsultas y CTEs"]
+
+    S2 --> ESC["Funciones Escalares (Texto, Fecha, Numéricas, NULLs)"]
+    S2 --> MAS["Ingreso Masivo (generate_series, INSERT ... SELECT, COPY)"]
+    S2 --> VIEW["Vistas Lógicas (CREATE VIEW, WITH CHECK OPTION)"]
+
+    S3 --> MVIEW["Vistas Materializadas (REFRESH CONCURRENTLY)"]
+    S3 --> IDX["Índices (B-Tree, Compuestos, Parciales, Funcionales, GIN)"]
+    S3 --> EXP["Auditoría de Costos (EXPLAIN ANALYZE BUFFERS)"]
+```
+
+---
+
+### 4.2 Repaso Express: Modelado Lógico, Tablas Catálogo y Asociaciones Polimórficas
+
+#### A. Resumen de Formas Normales (1FN a 3FN)
+
+| Forma Normal | Regla de Oro | Antipatrón Común | Solución en PostgreSQL |
+| :--- | :--- | :--- | :--- |
+| **1FN (Primera)** | Atributos atómicos, sin grupos repetitivos. | Columna `telefonos VARCHAR` con `'099111222, 022333444'`. | Crear tabla hija `cliente_telefonos` o usar relación `1:N`. |
+| **2FN (Segunda)** | 1FN + Sin dependencias parciales respecto a una PK compuesta. | En `detalle_factura(factura_id, producto_id)`, guardar `nombre_producto`. | Mover `nombre_producto` exclusivamente a la tabla `productos(producto_id)`. |
+| **3FN (Tercera)** | 2FN + Sin dependencias transitivas entre atributos no clave. | En `empleados`, guardar `departamento_id` y también `nombre_departamento`. | Mantener `nombre_departamento` en la tabla `departamentos`. |
+
+#### B. Tablas Catálogo Unificadas vs. Asociaciones Polimórficas
+
+```mermaid
+erDiagram
+    CATALOGOS ||--o{ CATALOGOS : "padre_id (Jerarquía)"
+    CATALOGOS {
+        int catalogo_id PK
+        varchar grupo_codigo "Ej: TIPO_DOC, ESTADO_RESERVA"
+        varchar item_codigo UK "Ej: CEDULA, PASAPORTE"
+        varchar nombre
+        int padre_id FK
+        boolean activo
+    }
+
+    COMENTARIOS_POLIMORFICOS {
+        bigint comentario_id PK
+        varchar entidad_tipo "CHECK (HOTEL, HABITACION, TOUR)"
+        bigint entidad_id "ID de la fila destino"
+        int calificacion "CHECK (1..5)"
+        text contenido
+    }
+```
+
+> **💡 Pregunta típica de examen:** *¿Por qué una Asociación Polimórfica (`entidad_tipo`, `entidad_id`) no puede tener una restricción `FOREIGN KEY` nativa hacia múltiples tablas a la vez?*
+> **Respuesta:** Porque una clave foránea en SQL estándar apunta exactamente a **una** tabla destino fija. Para mitigar esto en la Unidad 1 usamos:
+> 1. Un `CHECK (entidad_tipo IN ('HOTEL', 'HABITACION'))` para restringir los dominios válidos.
+> 2. Un **índice compuesto** `CREATE INDEX idx_polimorfico ON tabla (entidad_tipo, entidad_id);` para acelerar los `JOIN` filtrados. *(Nota: En la Unidad 2 aprenderemos a validar la existencia real del `entidad_id` mediante **Triggers** en PL/pgSQL).*
+
+---
+
+### 4.3 Cheat Sheet: Orden de Evaluación Lógica en SQL y Consultas Complejas
+
+Uno de los errores más frecuentes al escribir consultas complejas es intentar usar un alias definido en el `SELECT` dentro del `WHERE` o del `GROUP BY`. Recordemos el **orden real en que el motor de PostgreSQL ejecuta una consulta**:
+
+```mermaid
+flowchart LR
+    F["1. FROM / JOIN"] --> W["2. WHERE"]
+    W --> G["3. GROUP BY"]
+    G --> H["4. HAVING"]
+    H --> S["5. SELECT"]
+    S --> D["6. DISTINCT"]
+    D --> O["7. ORDER BY"]
+    O --> L["8. LIMIT / OFFSET"]
+```
+
+#### Tabla de Referencia Rápida: Cláusulas y Patrones Analíticos
+
+| Necesidad Analítica | Herramienta Recomendada | Sintaxis Clave en PostgreSQL |
+| :--- | :--- | :--- |
+| Filtrar filas individuales **antes** de agrupar | `WHERE` | `WHERE fecha_reserva >= '2026-01-01'` |
+| Filtrar grupos **después** de calcular agregados | `HAVING` | `HAVING COUNT(*) >= 5 AND SUM(total) > 1000` |
+| Contar o sumar condicionalmente dentro de una columna | `FILTER (WHERE ...)` | `COUNT(*) FILTER (WHERE estado = 'PAGADA') AS pagadas` |
+| Reemplazar valores `NULL` por un valor por defecto | `COALESCE(v1, v2, ...)` | `COALESCE(descuento, 0.00)` |
+| Evitar división para cero devolviendo `NULL` | `NULLIF(a, b)` | `total / NULLIF(cantidad_huespedes, 0)` |
+| Verificar existencia sin sufrir el problema de `NULL`s | `EXISTS` / `NOT EXISTS` | `WHERE NOT EXISTS (SELECT 1 FROM pagos p WHERE p.reserva_id = r.id)` |
+| Modularizar consultas complejas de múltiples pasos | `CTE (WITH)` | `WITH ventas_mes AS (SELECT ...) SELECT * FROM ventas_mes` |
+| Obtener los Top-N registros por cada categoría | `JOIN LATERAL` | `LEFT JOIN LATERAL (SELECT ... WHERE ... ORDER BY ... LIMIT 3) sub ON TRUE` |
+
+---
+
+### 4.4 Cheat Sheet: Vistas, Vistas Materializadas e Índices
+
+#### Comparativa Arquitectónica: Vistas vs. Vistas Materializadas
+
+| Característica | Vista Estándar (`VIEW`) | Vista Materializada (`MATERIALIZED VIEW`) |
+| :--- | :--- | :--- |
+| **Almacenamiento en disco** | No almacena filas (solo guarda la definición SQL en el catálogo). | Sí almacena físicamente el resultado en disco como una tabla. |
+| **Frescura de los datos** | **Tiempo real (100% actualizada)** en cada `SELECT`. | **Instantánea histórica** (datos vigentes al último `REFRESH`). |
+| **Velocidad de lectura** | Depende de la complejidad de la consulta subyacente. | **Ultra rápida** (lectura directa del resultado precalculado). |
+| **Soporte de Índices** | No se pueden crear índices sobre la vista (usa los de las tablas base). | **Sí permite índices propios** (incluyendo `UNIQUE INDEX`). |
+| **Actualización sin bloqueo** | N/A (siempre está al día). | `REFRESH MATERIALIZED VIEW CONCURRENTLY nombre_mv;` (requiere `UNIQUE INDEX`). |
+
+#### Árbol de Decisión para Selección de Índices en PostgreSQL
+
+```mermaid
+flowchart TD
+    Q["¿Qué patrón de filtro o búsqueda deseas optimizar?"] --> C1["Igualdad (=), Rangos (<, >, BETWEEN), ORDER BY, LIKE 'prefijo%'"]
+    Q --> C2["Filtros por múltiples columnas frecuentes (WHERE a = ? AND b = ?)"]
+    Q --> C3["Consultas que solo filtran un subconjunto pequeño (ej. activo = true)"]
+    Q --> C4["Filtros con funciones o transformaciones (ej. LOWER(email))"]
+    Q --> C5["Búsqueda dentro de JSONB, Arrays o Texto Completo"]
+
+    C1 --> I1["Índice B-Tree Simple: CREATE INDEX ON t(col)"]
+    C2 --> I2["Índice Compuesto: CREATE INDEX ON t(col_igualdad, col_rango)"]
+    C3 --> I3["Índice Parcial: CREATE INDEX ON t(col) WHERE activo = TRUE"]
+    C4 --> I4["Índice Funcional: CREATE INDEX ON t(LOWER(email))"]
+    C5 --> I5["Índice GIN: CREATE INDEX ON t USING GIN (datos_jsonb)"]
+```
+
+---
+
+## 💻 5. Clínica de Dudas y Errores Frecuentes (FAQ con Código Ejecutable)
+
+Durante las primeras tres semanas, los siguientes **6 antipatrones** suelen provocar pérdidas de puntos en las evaluaciones. Analicemos cada uno en vivo con su respectiva corrección.
+
+### Error #1: La Trampa Mortal de `NOT IN` cuando hay valores `NULL`
+
+Si una subconsulta dentro de `NOT IN (...)` devuelve **al menos un valor `NULL`**, toda la expresión se evalúa como `UNKNOWN` y la consulta principal devuelve **0 filas**, aunque existan datos.
+
+```sql
+-- ❌ ANTIPATRÓN PELIGROSO: Si algún cupón tiene cliente_id IS NULL, devuelve 0 filas
+SELECT c.cliente_id, c.nombre
+FROM clientes c
+WHERE c.cliente_id NOT IN (
+    SELECT cu.cliente_id FROM cupones_usados cu -- ¡Peligro si cliente_id permite NULL!
+);
+
+-- ✅ SOLUCIÓN PROFESIONAL: Usar NOT EXISTS (inmune a NULLs y optimizable con Anti-Join)
+SELECT c.cliente_id, c.nombre
+FROM clientes c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM cupones_usados cu
+    WHERE cu.cliente_id = c.cliente_id
+);
+```
+
+### Error #2: Destruir el uso de un Índice por aplicar funciones a la columna (No-SARGable)
+
+Si tienes un índice B-Tree sobre `fecha_registro` o `correo`, envolver la columna en una función (`EXTRACT`, `DATE_PART`, `LOWER`) dentro del `WHERE` impide usar el índice normal y fuerza un `Seq Scan`.
+
+```sql
+-- ❌ ANTIPATRÓN: Fuerza Seq Scan aunque exista índice en fecha_reserva
+SELECT * FROM reservas
+WHERE EXTRACT(YEAR FROM fecha_reserva) = 2026;
+
+-- ✅ SOLUCIÓN 1 (Reescribir predicado a rango SARGable): Usa el índice B-Tree existente
+SELECT * FROM reservas
+WHERE fecha_reserva >= '2026-01-01 00:00:00-05'
+  AND fecha_reserva <  '2027-01-01 00:00:00-05';
+
+-- ✅ SOLUCIÓN 2 (Para textos): Crear un Índice Funcional que coincida exactamente con la expresión
+CREATE INDEX idx_clientes_correo_lower ON clientes (LOWER(correo));
+SELECT * FROM clientes WHERE LOWER(correo) = LOWER('Usuario@Yavirac.edu.ec');
+```
+
+### Error #3: División Entera Truncada al Calcular Porcentajes
+
+En PostgreSQL, dividir un `INTEGER` o `BIGINT` para otro entero (`COUNT(*) / total`) trunca los decimales a `0`.
+
+```sql
+-- ❌ ANTIPATRÓN: 45 / 100 devuelve 0 en lugar de 0.45
+SELECT (COUNT(*) FILTER (WHERE estado = 'CANCELADA') / COUNT(*)) * 100 AS pct_cancelacion
+FROM reservas;
+
+-- ✅ SOLUCIÓN: Multiplicar por 100.0 o hacer cast explícito a NUMERIC
+SELECT ROUND(
+    (COUNT(*) FILTER (WHERE estado = 'CANCELADA')::NUMERIC * 100.0) / NULLIF(COUNT(*), 0),
+    2
+) AS pct_cancelacion
+FROM reservas;
+```
+
+### Error #4: Confundir el orden de las columnas en un Índice Compuesto
+
+```sql
+-- Si nuestras consultas frecuentes son:
+-- Consulta A: WHERE hotel_id = 10
+-- Consulta B: WHERE hotel_id = 10 AND fecha_entrada >= '2026-06-01'
+
+-- ✅ CORRECTO: Primero la columna de igualdad (y filtro individual común), luego el rango
+CREATE INDEX idx_reservas_hotel_fecha ON reservas (hotel_id, fecha_entrada);
+```
+
+### Error #5: Fuga de Filas en Vistas Editables sin `WITH CHECK OPTION`
+
+Si creas una vista `vw_habitaciones_activas` con `WHERE activo = TRUE` pero omites `WITH CHECK OPTION`, un usuario podría hacer un `INSERT` o `UPDATE` poniendo `activo = FALSE` a través de la vista, haciendo que el registro desaparezca de la vista sin error.
+
+```sql
+-- ✅ SOLUCIÓN: Blindar la vista editable
+CREATE OR REPLACE VIEW vw_habitaciones_activas AS
+SELECT habitacion_id, hotel_id, numero_habitacion, tarifa_noche, activo
+FROM habitaciones
+WHERE activo = TRUE
+WITH LOCAL CHECK OPTION;
+```
+
+### Error #6: Fallo al ejecutar `REFRESH MATERIALIZED VIEW CONCURRENTLY`
+
+```sql
+-- ❌ ERROR: "cannot refresh materialized view concurrently without a unique index"
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ingresos_mensuales;
+
+-- ✅ SOLUCIÓN: Crear primero un índice ÚNICO sobre la(s) columna(s) identificadora(s) de la vista materializada
+CREATE UNIQUE INDEX idx_uq_mv_ingresos_mensuales
+ON mv_ingresos_mensuales (hotel_id, mes_anio);
+
+-- Ahora sí se puede refrescar sin bloquear a los lectores:
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ingresos_mensuales;
+```
+
+---
+
+## 🛠️ 6. Taller Práctico-Experimental (APECD - 3 Horas): Examen Parcial 1 Oficial
+
+### 🏛️ Caso Empresarial Integrador: Plataforma "Yavirac Heritage Stays"
+
+El Distrito Metropolitano de Quito y el consorcio turístico **"Yavirac Heritage Stays"** están desarrollando el motor de base de datos en **PostgreSQL** para administrar su red de **Hoteles Patrimoniales**, sus **Habitaciones**, el registro de **Huéspedes** nacionales y extranjeros, las **Reservas de Alojamiento**, un **Catálogo Unificado** de configuraciones del sistema y una galería de **Multimedia y Reseñas Polimórficas** (que pueden asociarse tanto a un Hotel como a una Habitación específica).
+
+#### Instrucciones Generales de la Evaluación
+- **Duración total:** 180 minutos (3 horas).
+- **Puntaje total:** 100 puntos.
+- **Entregable:** Un único script SQL ordenado, documentado con comentarios y 100% ejecutable de principio a fin.
+
+---
+
+### 📝 Parte 1: Evaluación Teórica y Análisis de Planes de Ejecución (25 Puntos / 30 min)
+
+Responde las siguientes **10 preguntas de opción múltiple**, justificando brevemente en un comentario SQL (`--`) por qué tu elección es correcta:
+
+1. **(2.5 pts)** En una tabla `detalle_reserva(reserva_id, servicio_id, nombre_servicio, cantidad, precio_unitario)` cuya clave primaria es `(reserva_id, servicio_id)`, el atributo `nombre_servicio` depende únicamente de `servicio_id`. ¿Qué forma normal se está violando directamente?
+   - a) Primera Forma Normal (1FN)
+   - b) Segunda Forma Normal (2FN)
+   - c) Tercera Forma Normal (3FN)
+   - d) Ninguna, está completamente normalizada
+
+2. **(2.5 pts)** ¿Cuál es el resultado de ejecutar `SELECT COALESCE(NULL, NULLIF(10, 10), '50'::INTEGER, 100);` en PostgreSQL?
+   - a) `10`
+   - b) `NULL`
+   - c) `50`
+   - d) `100`
+
+3. **(2.5 pts)** ¿Por qué razón técnica una cláusula `WHERE` **no** puede utilizar una función de agregación como `WHERE SUM(monto) > 500`?
+   - a) Porque `SUM()` solo acepta tipos de datos `INTEGER`.
+   - b) Porque en el orden de evaluación lógica de SQL, `WHERE` se ejecuta **antes** de `GROUP BY` y del cálculo de agregaciones.
+   - c) Porque `SUM()` requiere obligatoriamente una subconsulta correlacionada.
+   - d) Porque en PostgreSQL solo se permite `COUNT(*)` dentro del `WHERE`.
+
+4. **(2.5 pts)** Si deseas obtener **todos** los hoteles patrimoniales registrados en la base de datos, incluyendo aquellos que **nunca han recibido una reserva**, mostrando `0` en su total de reservas, ¿qué combinación es la correcta?
+   - a) `INNER JOIN reservas` con `COUNT(r.reserva_id)`
+   - b) `LEFT JOIN reservas` con `COUNT(*)`
+   - c) `LEFT JOIN reservas` con `COUNT(r.reserva_id)`
+   - d) `RIGHT JOIN reservas` con `COUNT(h.hotel_id)`
+
+5. **(2.5 pts)** ¿Qué ocurre en PostgreSQL si ejecutas `CREATE OR REPLACE VIEW vw_resumen AS ...` cambiando el **orden** o eliminando una de las columnas que ya existían en la vista original?
+   - a) PostgreSQL actualiza la vista automáticamente sin advertencias.
+   - b) PostgreSQL lanza un error porque `CREATE OR REPLACE VIEW` solo permite mantener las mismas columnas en el mismo orden (y opcionalmente añadir nuevas columnas al final).
+   - c) PostgreSQL convierte automáticamente la vista en una Vista Materializada.
+   - d) PostgreSQL borra todas las tablas base asociadas.
+
+6. **(2.5 pts)** Analiza el siguiente resultado de `EXPLAIN ANALYZE`:
+   ```text
+   Seq Scan on reservas r  (cost=0.00..4520.00 rows=120 width=64) (actual time=0.045..38.912 rows=95 loops=1)
+     Filter: (lower((codigo_cupon)::text) = 'quito2026'::text)
+     Rows Removed by Filter: 199905
+   ```
+   Existe un índice `CREATE INDEX idx_reservas_cupon ON reservas(codigo_cupon);`. ¿Por qué PostgreSQL NO usó el índice y leyó las 200,000 filas completas?
+   - a) Porque la tabla tiene demasiadas filas para usar un índice B-Tree.
+   - b) Porque el filtro aplica la función `lower(codigo_cupon)` y el índice fue creado sobre la columna cruda `codigo_cupon`, no sobre la expresión `lower(codigo_cupon)`.
+   - c) Porque `EXPLAIN ANALYZE` desactiva todos los índices automáticamente.
+   - d) Porque los índices B-Tree no soportan el operador `=`.
+
+7. **(2.5 pts)** En el diseño de una tabla `resenas_polimorficas` con las columnas `(resena_id, entidad_tipo, entidad_id, calificacion)`, ¿cuál es el índice más eficiente para acelerar la búsqueda de todas las reseñas de un hotel específico (`WHERE entidad_tipo = 'HOTEL' AND entidad_id = 42`)?
+   - a) Dos índices separados: uno en `(calificacion)` y otro en `(resena_id)`.
+   - b) Un índice compuesto B-Tree sobre `(entidad_tipo, entidad_id)`.
+   - c) Un índice GIN sobre `(resena_id)`.
+   - d) No es posible crear índices en tablas polimórficas.
+
+8. **(2.5 pts)** ¿Cuál es el requisito obligatorio en PostgreSQL para poder ejecutar `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ocupacion_hoteles;`?
+   - a) Que la vista materializada tenga menos de 1,000 filas.
+   - b) Que la vista materializada no utilice cláusulas `JOIN`.
+   - c) Que exista al menos un `UNIQUE INDEX` sobre la vista materializada que identifique de forma única cada fila (sin valores `NULL` duplicados).
+   - d) Que se ejecute primero `TRUNCATE` sobre la vista materializada.
+
+9. **(2.5 pts)** ¿Para qué sirve la cláusula `INCLUDE (tarifa_total, estado)` al crear un índice B-Tree en PostgreSQL (`CREATE INDEX idx_res_huesped ON reservas (huesped_id) INCLUDE (tarifa_total, estado)`)?
+   - a) Para encriptar las columnas `tarifa_total` y `estado`.
+   - b) Para almacenar esas columnas como carga útil (*payload*) en los nodos hoja del índice, permitiendo un **Index Only Scan** sin tener que visitar la tabla física (*Heap*).
+   - c) Para obligar a que `tarifa_total` y `estado` sean claves primarias.
+   - d) Para eliminar duplicados de `huesped_id`.
+
+10. **(2.5 pts)** ¿Qué devuelve la función `generate_series('2026-03-01'::DATE, '2026-03-05'::DATE, '2 days'::INTERVAL)`?
+    - a) 5 filas (del 1 al 5 de marzo).
+    - b) 3 filas (`2026-03-01`, `2026-03-03`, `2026-03-05`).
+    - c) 2 filas (`2026-03-01` y `2026-03-05`).
+    - d) Un error de sintaxis porque `generate_series` solo acepta números enteros.
+
+---
+
+### 🏗️ Parte 2: Modelamiento Lógico, Tablas Catálogo, Polimórficas y DDL Avanzado (25 Puntos / 45 min)
+
+Implementa el esquema físico en PostgreSQL cumpliendo **3FN** y todas las restricciones de integridad solicitadas:
+
+```mermaid
+erDiagram
+    CATALOGOS ||--o{ CATALOGOS : "padre_id"
+    CATALOGOS ||--o{ HOTELES_PATRIMONIALES : "categoria_catalogo_id"
+    CATALOGOS ||--o{ HABITACIONES : "tipo_hab_catalogo_id"
+    CATALOGOS ||--o{ HUESPEDES : "pais_catalogo_id"
+    HOTELES_PATRIMONIALES ||--o{ HABITACIONES : "hotel_id"
+    HUESPEDES ||--o{ RESERVAS : "huesped_id"
+    HABITACIONES ||--o{ RESERVAS : "habitacion_id"
+
+    CATALOGOS {
+        serial catalogo_id PK
+        varchar grupo_codigo
+        varchar item_codigo UK
+        varchar nombre
+        int padre_id FK
+        boolean activo
+    }
+    HOTELES_PATRIMONIALES {
+        serial hotel_id PK
+        varchar codigo_patrimonio UK
+        varchar nombre
+        varchar barrio_historico
+        int anio_construccion
+        int categoria_catalogo_id FK
+        boolean activo
+    }
+    HABITACIONES {
+        serial habitacion_id PK
+        int hotel_id FK
+        varchar numero_habitacion
+        int tipo_hab_catalogo_id FK
+        int capacidad_maxima
+        numeric tarifa_base_noche
+        boolean disponible
+    }
+    HUESPEDES {
+        serial huesped_id PK
+        varchar identificacion UK
+        varchar nombres_completos
+        varchar correo UK
+        int pais_catalogo_id FK
+        timestamptz fecha_registro
+    }
+    RESERVAS {
+        bigserial reserva_id PK
+        varchar codigo_reserva UK
+        int huesped_id FK
+        int habitacion_id FK
+        date fecha_checkin
+        date fecha_checkout
+        int cantidad_huespedes
+        numeric subtotal
+        numeric descuento
+        numeric impuesto_turismo
+        varchar estado
+        timestamptz creado_en
+    }
+    RESENAS_POLIMORFICAS {
+        bigserial resena_id PK
+        varchar entidad_tipo
+        bigint entidad_id
+        int huesped_id FK
+        smallint calificacion
+        text comentario
+        jsonb etiquetas_json
+        timestamptz fecha_resena
+    }
+```
+
+#### Requerimientos DDL Exactos:
+1. **`catalogos`**:
+   - `catalogo_id SERIAL PRIMARY KEY`, `grupo_codigo VARCHAR(40) NOT NULL`, `item_codigo VARCHAR(40) NOT NULL UNIQUE`, `nombre VARCHAR(100) NOT NULL`, `padre_id INTEGER REFERENCES catalogos(catalogo_id)`, `activo BOOLEAN NOT NULL DEFAULT TRUE`.
+2. **`hoteles_patrimoniales`**:
+   - `hotel_id SERIAL PRIMARY KEY`, `codigo_patrimonio VARCHAR(20) NOT NULL UNIQUE`, `nombre VARCHAR(120) NOT NULL`, `barrio_historico VARCHAR(80) NOT NULL`, `anio_construccion INTEGER NOT NULL CHECK (anio_construccion BETWEEN 1534 AND 1980)`, `categoria_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id)`, `activo BOOLEAN NOT NULL DEFAULT TRUE`.
+3. **`habitaciones`**:
+   - `habitacion_id SERIAL PRIMARY KEY`, `hotel_id INTEGER NOT NULL REFERENCES hoteles_patrimoniales(hotel_id) ON DELETE RESTRICT`, `numero_habitacion VARCHAR(15) NOT NULL`, `tipo_hab_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id)`, `capacidad_maxima SMALLINT NOT NULL CHECK (capacidad_maxima BETWEEN 1 AND 8)`, `tarifa_base_noche NUMERIC(10,2) NOT NULL CHECK (tarifa_base_noche > 0)`, `disponible BOOLEAN NOT NULL DEFAULT TRUE`.
+   - Restricción única compuesta: un mismo hotel no puede repetir el `numero_habitacion` (`UNIQUE (hotel_id, numero_habitacion)`).
+4. **`huespedes`**:
+   - `huesped_id SERIAL PRIMARY KEY`, `identificacion VARCHAR(25) NOT NULL UNIQUE`, `nombres_completos VARCHAR(120) NOT NULL`, `correo VARCHAR(120) NOT NULL UNIQUE CHECK (correo LIKE '%_@_%.__%')`, `pais_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id)`, `fecha_registro TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+5. **`reservas`**:
+   - `reserva_id BIGSERIAL PRIMARY KEY`, `codigo_reserva VARCHAR(30) NOT NULL UNIQUE`, `huesped_id INTEGER NOT NULL REFERENCES huespedes(huesped_id)`, `habitacion_id INTEGER NOT NULL REFERENCES habitaciones(habitacion_id)`, `fecha_checkin DATE NOT NULL`, `fecha_checkout DATE NOT NULL`, `cantidad_huespedes SMALLINT NOT NULL CHECK (cantidad_huespedes >= 1)`, `subtotal NUMERIC(12,2) NOT NULL CHECK (subtotal >= 0)`, `descuento NUMERIC(12,2) DEFAULT 0.00 CHECK (descuento >= 0 AND descuento <= subtotal)`, `impuesto_turismo NUMERIC(12,2) NOT NULL DEFAULT 0.00`, `estado VARCHAR(20) NOT NULL CHECK (estado IN ('PENDIENTE', 'CONFIRMADA', 'COMPLETADA', 'CANCELADA'))`, `creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+   - Restricción de tabla: `CHECK (fecha_checkout > fecha_checkin)`.
+6. **`resenas_polimorficas`**:
+   - `resena_id BIGSERIAL PRIMARY KEY`, `entidad_tipo VARCHAR(20) NOT NULL CHECK (entidad_tipo IN ('HOTEL', 'HABITACION'))`, `entidad_id BIGINT NOT NULL`, `huesped_id INTEGER NOT NULL REFERENCES huespedes(huesped_id)`, `calificacion SMALLINT NOT NULL CHECK (calificacion BETWEEN 1 AND 5)`, `comentario TEXT`, `etiquetas_json JSONB NOT NULL DEFAULT '[]'::JSONB`, `fecha_resena TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+
+---
+
+### 🚀 Parte 3: Poblamiento Masivo y Consultas SQL Complejas (30 Puntos / 60 min)
+
+1. **(6 pts) Poblamiento Masivo con `generate_series`**:
+   - Inserta los catálogos base (Categorías de hotel: `'CAT_BOUTIQUE'`, `'CAT_MONASTERIO'`, `'CAT_CASONA'`; Tipos de habitación: `'HAB_SUITE'`, `'HAB_DOBLE'`, `'HAB_SIMPLE'`; Países: `'PAIS_EC'`, `'PAIS_CO'`, `'PAIS_US'`, `'PAIS_ES'`).
+   - Inserta **6 hoteles patrimoniales** en el Centro Histórico de Quito.
+   - Genera **60 habitaciones** (10 por hotel) usando `generate_series(1, 60)`.
+   - Genera **500 huéspedes** sintéticos usando `generate_series(1, 500)`.
+   - Genera **10,000 reservas** históricas y futuras usando `generate_series(1, 10000)` con fechas, montos, descuentos (algunos `NULL` para evaluar `COALESCE`) y estados variados.
+   - Genera **2,000 reseñas polimórficas** (mitad para `'HOTEL'` y mitad para `'HABITACION'`) con etiquetas en `JSONB`.
+
+2. **(6 pts) Consulta 1 — Reporte Financiero por Hotel (JOINs + Agregaciones + `FILTER` + `HAVING` + Funciones Escalares)**:
+   - Obtén para cada hotel patrimonial: `codigo_patrimonio`, `nombre` en mayúsculas, nombre de su categoría en el catálogo, total de reservas históricas, reservas completadas (`FILTER`), reservas canceladas (`FILTER`), porcentaje de cancelación redondeado a 2 decimales, e **ingreso neto recaudado** (`SUM(subtotal - COALESCE(descuento, 0) + impuesto_turismo)` solo de reservas `'COMPLETADA'` o `'CONFIRMADA'`).
+   - Filtra con `HAVING` únicamente los hoteles cuyo ingreso neto supere los `$15,000.00`. Ordena de mayor a menor ingreso neto.
+
+3. **(6 pts) Consulta 2 — Benchmarking de Habitaciones Estrella mediante `CTE` (`WITH`)**:
+   - Utilizando al menos dos CTEs (`ingresos_habitacion` y `promedio_por_hotel`), lista aquellas habitaciones cuyo ingreso total histórico sea **estrictamente superior al ingreso promedio de las habitaciones de su propio hotel**.
+   - Muestra: nombre del hotel, número de habitación, tarifa base, ingreso total de la habitación, promedio de su hotel y la diferencia porcentual sobre el promedio.
+
+4. **(6 pts) Consulta 3 — Búsqueda de Disponibilidad Real con `NOT EXISTS` (Subconsulta Correlacionada)**:
+   - Lista todas las habitaciones activas (`disponible = TRUE`) con capacidad para al menos 2 personas que **NO tengan ninguna reserva** en estado `'CONFIRMADA'` o `'PENDIENTE'` que se solape con el rango de Semana Santa: desde `'2026-04-01'` hasta `'2026-04-05'` (recuerda que dos rangos se solapan si `r.fecha_checkin < '2026-04-05' AND r.fecha_checkout > '2026-04-01'`).
+
+5. **(6 pts) Consulta 4 — Auditoría de Reseñas Polimórficas y Top Huéspedes VIP**:
+   - Construye una consulta que una `resenas_polimorficas` con `hoteles_patrimoniales` (cuando `entidad_tipo = 'HOTEL'`) y con `habitaciones` (cuando `entidad_tipo = 'HABITACION'`), mostrando el tipo de entidad, el nombre del hotel o número de habitación evaluado, el promedio de calificación y el total de reseñas recibidas.
+
+---
+
+### ⚡ Parte 4: Vistas, Vistas Materializadas y Optimización con Índices (20 Puntos / 45 min)
+
+1. **(5 pts) Vista Operativa Editable (`CREATE OR REPLACE VIEW ... WITH CHECK OPTION`)**:
+   - Crea la vista `vw_habitaciones_tarifa_premium` que exponga `habitacion_id`, `hotel_id`, `numero_habitacion`, `capacidad_maxima`, `tarifa_base_noche` y `disponible` únicamente para las habitaciones cuya `tarifa_base_noche >= 120.00` y `disponible = TRUE`, garantizando con `WITH LOCAL CHECK OPTION` que ningún `UPDATE` o `INSERT` a través de la vista permita rebajar la tarifa por debajo de `$120.00`.
+
+2. **(5 pts) Vista Materializada de Inteligencia de Negocios (`CREATE MATERIALIZED VIEW`)**:
+   - Crea la vista materializada `mv_kpis_mensuales_hotel` que consolide por `hotel_id` y `mes_anio` (`DATE_TRUNC('month', fecha_checkin)::DATE`): cantidad de reservas, noches totales vendidas (`SUM(fecha_checkout - fecha_checkin)`), ingreso neto y ticket promedio.
+   - Crea el **índice único** requerido y demuestra la ejecución de `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_kpis_mensuales_hotel;`.
+
+3. **(10 pts) Laboratorio de Optimización con `EXPLAIN (ANALYZE, BUFFERS)`**:
+   - **Caso A:** Ejecuta `EXPLAIN (ANALYZE, BUFFERS)` sobre una consulta que busque reservas activas (`estado IN ('CONFIRMADA', 'PENDIENTE')`) de una habitación específica en un rango de fechas (`fecha_checkin`). Crea un **Índice Compuesto y Parcial** óptimo y vuelve a ejecutar `EXPLAIN (ANALYZE, BUFFERS)` comparando el costo y el tiempo.
+   - **Caso B:** Ejecuta `EXPLAIN (ANALYZE, BUFFERS)` sobre una búsqueda de reseñas polimórficas por `entidad_tipo`, `entidad_id` y etiqueta JSONB (`etiquetas_json @> '["limpieza"]'::jsonb`). Crea los índices apropiados (Compuesto B-Tree y GIN) y comprueba la mejora.
+
+---
+
+### 🔑 Solucionario Oficial Completo del Examen Parcial 1 (Para Revisión Docente y Estudio)
+
+<details>
+<summary>✅ Ver Solución Oficial — Parte 1: Evaluación Teórica (10 Preguntas)</summary>
+
+| # | Respuesta Correcta | Justificación Técnica |
+| :---: | :---: | :--- |
+| **1** | **b) Segunda Forma Normal (2FN)** | La PK es compuesta `(reserva_id, servicio_id)` y `nombre_servicio` depende solo de una parte de la PK (`servicio_id`), lo que constituye una **dependencia funcional parcial**. |
+| **2** | **c) `50`** | `NULLIF(10, 10)` devuelve `NULL` porque ambos argumentos son iguales. Luego `COALESCE(NULL, NULL, 50, 100)` retorna el primer valor no nulo, que es `50`. |
+| **3** | **b) Orden de evaluación lógica** | En SQL, `WHERE` filtra filas base en el paso 2, antes de que `GROUP BY` (paso 3) forme los grupos. Para filtrar agregados se usa `HAVING` (paso 4). |
+| **4** | **c) `LEFT JOIN` con `COUNT(r.reserva_id)`** | `LEFT JOIN` preserva los hoteles sin reservas (con `r.reserva_id IS NULL`). Si se usara `COUNT(*)`, contaría la fila nula como `1`; en cambio `COUNT(r.reserva_id)` ignora los `NULL` y devuelve `0`. |
+| **5** | **b) Lanza un error** | En PostgreSQL, `CREATE OR REPLACE VIEW` exige que las columnas existentes conserven exactamente su nombre, tipo de dato y posición ordinal. Para eliminar o reordenar columnas se requiere `DROP VIEW` + `CREATE VIEW`. |
+| **6** | **b) Predicado no SARGable (`lower(codigo_cupon)`)** | El optimizador no puede usar un índice B-Tree sobre `(codigo_cupon)` si la consulta filtra por `lower(codigo_cupon)`. Se requiere un índice funcional `CREATE INDEX ON reservas (LOWER(codigo_cupon));`. |
+| **7** | **b) Índice compuesto B-Tree `(entidad_tipo, entidad_id)`** | Permite localizar directamente en el árbol B-Tree la combinación exacta de tipo de entidad e identificador en $O(\log N)$. |
+| **8** | **c) Existencia de un `UNIQUE INDEX`** | PostgreSQL necesita comparar fila por fila la versión anterior con la nueva versión mediante una clave única sin bloquear las lecturas concurrentes. |
+| **9** | **b) Habilitar `Index Only Scan`** | `INCLUDE` agrega columnas no clave en las hojas del índice (Covering Index), evitando accesos aleatorios a las páginas de la tabla (*Heap Fetches*). |
+| **10** | **b) 3 filas (`03-01`, `03-03`, `03-05`)** | El paso del intervalo es `'2 days'`, por lo que genera las fechas sumando 2 días en cada iteración hasta alcanzar el límite superior. |
+
+</details>
+
+<details>
+<summary>✅ Ver Solución Oficial — Parte 2: Implementación DDL Completa en PostgreSQL</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIONARIO OFICIAL PARCIAL 1 - PARTE 2: DDL "YAVIRAC HERITAGE STAYS"
+-- =============================================================================
+DROP SCHEMA IF EXISTS heritage_stays CASCADE;
+CREATE SCHEMA heritage_stays;
+SET search_path TO heritage_stays, public;
+
+-- 1. Tabla Catálogo Unificada (con soporte jerárquico recursivo)
+CREATE TABLE catalogos (
+    catalogo_id SERIAL PRIMARY KEY,
+    grupo_codigo VARCHAR(40) NOT NULL,
+    item_codigo VARCHAR(40) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    padre_id INTEGER REFERENCES catalogos(catalogo_id) ON DELETE RESTRICT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- 2. Tabla de Hoteles Patrimoniales
+CREATE TABLE hoteles_patrimoniales (
+    hotel_id SERIAL PRIMARY KEY,
+    codigo_patrimonio VARCHAR(20) NOT NULL UNIQUE,
+    nombre VARCHAR(120) NOT NULL,
+    barrio_historico VARCHAR(80) NOT NULL,
+    anio_construccion INTEGER NOT NULL CHECK (anio_construccion BETWEEN 1534 AND 1980),
+    categoria_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id) ON DELETE RESTRICT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- 3. Tabla de Habitaciones
+CREATE TABLE habitaciones (
+    habitacion_id SERIAL PRIMARY KEY,
+    hotel_id INTEGER NOT NULL REFERENCES hoteles_patrimoniales(hotel_id) ON DELETE RESTRICT,
+    numero_habitacion VARCHAR(15) NOT NULL,
+    tipo_hab_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id) ON DELETE RESTRICT,
+    capacidad_maxima SMALLINT NOT NULL CHECK (capacidad_maxima BETWEEN 1 AND 8),
+    tarifa_base_noche NUMERIC(10,2) NOT NULL CHECK (tarifa_base_noche > 0),
+    disponible BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT uq_hotel_numero_hab UNIQUE (hotel_id, numero_habitacion)
+);
+
+-- 4. Tabla de Huéspedes
+CREATE TABLE huespedes (
+    huesped_id SERIAL PRIMARY KEY,
+    identificacion VARCHAR(25) NOT NULL UNIQUE,
+    nombres_completos VARCHAR(120) NOT NULL,
+    correo VARCHAR(120) NOT NULL UNIQUE CHECK (correo LIKE '%_@_%.__%'),
+    pais_catalogo_id INTEGER NOT NULL REFERENCES catalogos(catalogo_id) ON DELETE RESTRICT,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 5. Tabla de Reservas
+CREATE TABLE reservas (
+    reserva_id BIGSERIAL PRIMARY KEY,
+    codigo_reserva VARCHAR(30) NOT NULL UNIQUE,
+    huesped_id INTEGER NOT NULL REFERENCES huespedes(huesped_id) ON DELETE RESTRICT,
+    habitacion_id INTEGER NOT NULL REFERENCES habitaciones(habitacion_id) ON DELETE RESTRICT,
+    fecha_checkin DATE NOT NULL,
+    fecha_checkout DATE NOT NULL,
+    cantidad_huespedes SMALLINT NOT NULL CHECK (cantidad_huespedes >= 1),
+    subtotal NUMERIC(12,2) NOT NULL CHECK (subtotal >= 0),
+    descuento NUMERIC(12,2) DEFAULT 0.00 CHECK (descuento >= 0 AND descuento <= subtotal),
+    impuesto_turismo NUMERIC(12,2) NOT NULL DEFAULT 0.00 CHECK (impuesto_turismo >= 0),
+    estado VARCHAR(20) NOT NULL CHECK (estado IN ('PENDIENTE', 'CONFIRMADA', 'COMPLETADA', 'CANCELADA')),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_fechas_reserva CHECK (fecha_checkout > fecha_checkin)
+);
+
+-- 6. Tabla de Reseñas Polimórficas
+CREATE TABLE resenas_polimorficas (
+    resena_id BIGSERIAL PRIMARY KEY,
+    entidad_tipo VARCHAR(20) NOT NULL CHECK (entidad_tipo IN ('HOTEL', 'HABITACION')),
+    entidad_id BIGINT NOT NULL,
+    huesped_id INTEGER NOT NULL REFERENCES huespedes(huesped_id) ON DELETE CASCADE,
+    calificacion SMALLINT NOT NULL CHECK (calificacion BETWEEN 1 AND 5),
+    comentario TEXT,
+    etiquetas_json JSONB NOT NULL DEFAULT '[]'::JSONB,
+    fecha_resena TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+</details>
+
+<details>
+<summary>✅ Ver Solución Oficial — Parte 3: Poblamiento Masivo y Consultas Complejas</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIONARIO OFICIAL PARCIAL 1 - PARTE 3: POBLAMIENTO MASIVO Y CONSULTAS
+-- =============================================================================
+
+-- 3.1 Poblamiento de Catálogos Base
+INSERT INTO catalogos (grupo_codigo, item_codigo, nombre) VALUES
+('CATEGORIA_HOTEL', 'CAT_BOUTIQUE', 'Hotel Boutique Patrimonial 5 Estrellas'),
+('CATEGORIA_HOTEL', 'CAT_MONASTERIO', 'Antiguo Claustro / Casa Conventual'),
+('CATEGORIA_HOTEL', 'CAT_CASONA', 'Casona Republicana Restaurada'),
+('TIPO_HABITACION', 'HAB_SUITE', 'Suite Presidencial Balcón Colonial'),
+('TIPO_HABITACION', 'HAB_DOBLE', 'Habitación Doble Patrimonial'),
+('TIPO_HABITACION', 'HAB_SIMPLE', 'Habitación Individual Estándar'),
+('PAIS', 'PAIS_EC', 'Ecuador'),
+('PAIS', 'PAIS_CO', 'Colombia'),
+('PAIS', 'PAIS_US', 'Estados Unidos'),
+('PAIS', 'PAIS_ES', 'España');
+
+-- 3.2 Inserción de 6 Hoteles Patrimoniales en Quito
+INSERT INTO hoteles_patrimoniales (codigo_patrimonio, nombre, barrio_historico, anio_construccion, categoria_catalogo_id) VALUES
+('QTO-PAT-001', 'Casa Gangotena Heritage', 'San Francisco', 1926, 1),
+('QTO-PAT-002', 'Claustro de La Ronda', 'La Ronda', 1740, 2),
+('QTO-PAT-003', 'Casona del Panecillo Real', 'San Sebastián', 1895, 3),
+('QTO-PAT-004', 'Palacio Plaza Grande Suites', 'Centro Histórico', 1810, 1),
+('QTO-PAT-005', 'Solar de Santo Domingo', 'Santo Domingo', 1785, 2),
+('QTO-PAT-006', 'Mansión Santa Bárbara', 'Santa Bárbara', 1912, 3);
+
+-- 3.3 Generación Masiva de 60 Habitaciones (10 por cada hotel)
+INSERT INTO habitaciones (hotel_id, numero_habitacion, tipo_hab_catalogo_id, capacidad_maxima, tarifa_base_noche, disponible)
+SELECT
+    ((gs - 1) / 10) + 1 AS hotel_id,
+    'HAB-' || LPAD(gs::TEXT, 3, '0') AS numero_habitacion,
+    CASE
+        WHEN gs % 5 = 0 THEN 4 -- Suite
+        WHEN gs % 2 = 0 THEN 5 -- Doble
+        ELSE 6                 -- Simple
+    END AS tipo_hab_catalogo_id,
+    CASE
+        WHEN gs % 5 = 0 THEN 4
+        WHEN gs % 2 = 0 THEN 2
+        ELSE 1
+    END AS capacidad_maxima,
+    ROUND((65.00 + (gs % 5) * 45.00 + ((gs - 1) / 10) * 15.00)::NUMERIC, 2) AS tarifa_base_noche,
+    (gs % 15 <> 0) AS disponible
+FROM generate_series(1, 60) AS gs;
+
+-- 3.4 Generación Masiva de 500 Huéspedes
+INSERT INTO huespedes (identificacion, nombres_completos, correo, pais_catalogo_id, fecha_registro)
+SELECT
+    'ID-' || LPAD(gs::TEXT, 8, '0'),
+    'Huésped Patrimonial ' || gs,
+    'huesped' || gs || '@correo-turismo.org',
+    7 + (gs % 4), -- IDs 7..10 corresponden a los países en catalogos
+    NOW() - ((gs % 365) || ' days')::INTERVAL
+FROM generate_series(1, 500) AS gs;
+
+-- 3.5 Generación Masiva de 10,000 Reservas
+INSERT INTO reservas (
+    codigo_reserva, huesped_id, habitacion_id,
+    fecha_checkin, fecha_checkout, cantidad_huespedes,
+    subtotal, descuento, impuesto_turismo, estado, creado_en
+)
+SELECT
+    'RES-2026-' || LPAD(gs::TEXT, 6, '0') AS codigo_reserva,
+    ((gs * 7) % 500) + 1 AS huesped_id,
+    ((gs * 3) % 60) + 1 AS habitacion_id,
+    ('2025-06-01'::DATE + ((gs % 360) || ' days')::INTERVAL)::DATE AS fecha_checkin,
+    ('2025-06-01'::DATE + (((gs % 360) + 1 + (gs % 5)) || ' days')::INTERVAL)::DATE AS fecha_checkout,
+    1 + (gs % 3) AS cantidad_huespedes,
+    ROUND((120.00 + (gs % 8) * 55.00)::NUMERIC, 2) AS subtotal,
+    CASE WHEN gs % 4 = 0 THEN NULL ELSE ROUND(((gs % 5) * 10.00)::NUMERIC, 2) END AS descuento,
+    ROUND(((120.00 + (gs % 8) * 55.00) * 0.15)::NUMERIC, 2) AS impuesto_turismo,
+    CASE
+        WHEN gs % 10 = 0 THEN 'CANCELADA'
+        WHEN gs % 6 = 0  THEN 'PENDIENTE'
+        WHEN gs % 3 = 0  THEN 'CONFIRMADA'
+        ELSE 'COMPLETADA'
+    END AS estado,
+    NOW() - ((gs % 180) || ' days')::INTERVAL
+FROM generate_series(1, 10000) AS gs;
+
+-- 3.6 Generación Masiva de 2,000 Reseñas Polimórficas
+INSERT INTO resenas_polimorficas (
+    entidad_tipo, entidad_id, huesped_id, calificacion, comentario, etiquetas_json, fecha_resena
+)
+SELECT
+    CASE WHEN gs % 2 = 0 THEN 'HOTEL' ELSE 'HABITACION' END AS entidad_tipo,
+    CASE WHEN gs % 2 = 0 THEN ((gs % 6) + 1) ELSE ((gs % 60) + 1) END AS entidad_id,
+    ((gs * 11) % 500) + 1 AS huesped_id,
+    3 + (gs % 3) AS calificacion, -- Calificaciones entre 3 y 5
+    'Experiencia registrada en auditoría de calidad #' || gs,
+    CASE
+        WHEN gs % 3 = 0 THEN '["limpieza", "arquitectura", "desayuno"]'::JSONB
+        WHEN gs % 2 = 0 THEN '["ubicacion", "atencion"]'::JSONB
+        ELSE '["limpieza", "silencio"]'::JSONB
+    END AS etiquetas_json,
+    NOW() - ((gs % 90) || ' days')::INTERVAL
+FROM generate_series(1, 2000) AS gs;
+
+-- =============================================================================
+-- CONSULTA 1: Reporte Financiero por Hotel (JOINs + FILTER + HAVING + Escalares)
+-- =============================================================================
+SELECT
+    hp.codigo_patrimonio,
+    UPPER(hp.nombre) AS hotel_patrimonial,
+    cat.nombre AS categoria_oficial,
+    COUNT(r.reserva_id) AS total_reservas,
+    COUNT(r.reserva_id) FILTER (WHERE r.estado = 'COMPLETADA') AS reservas_completadas,
+    COUNT(r.reserva_id) FILTER (WHERE r.estado = 'CANCELADA') AS reservas_canceladas,
+    ROUND(
+        (COUNT(r.reserva_id) FILTER (WHERE r.estado = 'CANCELADA')::NUMERIC * 100.0)
+        / NULLIF(COUNT(r.reserva_id), 0),
+        2
+    ) AS pct_cancelacion,
+    TO_CHAR(
+        COALESCE(
+            SUM(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo)
+            FILTER (WHERE r.estado IN ('COMPLETADA', 'CONFIRMADA')),
+            0
+        ),
+        'FM$999,999,990.00'
+    ) AS ingreso_neto_formateado,
+    COALESCE(
+        SUM(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo)
+        FILTER (WHERE r.estado IN ('COMPLETADA', 'CONFIRMADA')),
+        0
+    ) AS ingreso_neto_num
+FROM hoteles_patrimoniales hp
+INNER JOIN catalogos cat ON cat.catalogo_id = hp.categoria_catalogo_id
+LEFT JOIN habitaciones hab ON hab.hotel_id = hp.hotel_id
+LEFT JOIN reservas r ON r.habitacion_id = hab.habitacion_id
+GROUP BY hp.hotel_id, hp.codigo_patrimonio, hp.nombre, cat.nombre
+HAVING COALESCE(
+    SUM(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo)
+    FILTER (WHERE r.estado IN ('COMPLETADA', 'CONFIRMADA')),
+    0
+) > 15000.00
+ORDER BY ingreso_neto_num DESC;
+
+-- =============================================================================
+-- CONSULTA 2: Benchmarking de Habitaciones Estrella con CTEs
+-- =============================================================================
+WITH ingresos_habitacion AS (
+    SELECT
+        hab.habitacion_id,
+        hab.hotel_id,
+        hab.numero_habitacion,
+        hab.tarifa_base_noche,
+        COALESCE(
+            SUM(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo)
+            FILTER (WHERE r.estado IN ('COMPLETADA', 'CONFIRMADA')),
+            0
+        ) AS ingreso_total_hab
+    FROM habitaciones hab
+    LEFT JOIN reservas r ON r.habitacion_id = hab.habitacion_id
+    GROUP BY hab.habitacion_id, hab.hotel_id, hab.numero_habitacion, hab.tarifa_base_noche
+),
+promedio_por_hotel AS (
+    SELECT
+        hotel_id,
+        ROUND(AVG(ingreso_total_hab), 2) AS promedio_hotel
+    FROM ingresos_habitacion
+    GROUP BY hotel_id
+)
+SELECT
+    hp.nombre AS hotel,
+    ih.numero_habitacion,
+    ih.tarifa_base_noche,
+    ih.ingreso_total_hab,
+    pph.promedio_hotel,
+    ROUND(((ih.ingreso_total_hab - pph.promedio_hotel) * 100.0) / NULLIF(pph.promedio_hotel, 0), 2) AS pct_sobre_promedio
+FROM ingresos_habitacion ih
+INNER JOIN promedio_por_hotel pph ON pph.hotel_id = ih.hotel_id
+INNER JOIN hoteles_patrimoniales hp ON hp.hotel_id = ih.hotel_id
+WHERE ih.ingreso_total_hab > pph.promedio_hotel
+ORDER BY hp.nombre, ih.ingreso_total_hab DESC;
+
+-- =============================================================================
+-- CONSULTA 3: Disponibilidad Real con NOT EXISTS (Sin solapamiento de fechas)
+-- =============================================================================
+SELECT
+    hp.nombre AS hotel,
+    hab.habitacion_id,
+    hab.numero_habitacion,
+    hab.capacidad_maxima,
+    hab.tarifa_base_noche
+FROM habitaciones hab
+INNER JOIN hoteles_patrimoniales hp ON hp.hotel_id = hab.hotel_id
+WHERE hab.disponible = TRUE
+  AND hab.capacidad_maxima >= 2
+  AND NOT EXISTS (
+      SELECT 1
+      FROM reservas r
+      WHERE r.habitacion_id = hab.habitacion_id
+        AND r.estado IN ('CONFIRMADA', 'PENDIENTE')
+        AND r.fecha_checkin < '2026-04-05'::DATE
+        AND r.fecha_checkout > '2026-04-01'::DATE
+  )
+ORDER BY hab.tarifa_base_noche ASC;
+
+-- =============================================================================
+-- CONSULTA 4: Auditoría Consolidada de Reseñas Polimórficas
+-- =============================================================================
+SELECT
+    rp.entidad_tipo,
+    COALESCE(hp.nombre, 'Habitación ' || hab.numero_habitacion) AS elemento_evaluado,
+    COUNT(rp.resena_id) AS total_resenas,
+    ROUND(AVG(rp.calificacion), 2) AS calificacion_promedio
+FROM resenas_polimorficas rp
+LEFT JOIN hoteles_patrimoniales hp
+    ON rp.entidad_tipo = 'HOTEL' AND rp.entidad_id = hp.hotel_id
+LEFT JOIN habitaciones hab
+    ON rp.entidad_tipo = 'HABITACION' AND rp.entidad_id = hab.habitacion_id
+GROUP BY rp.entidad_tipo, COALESCE(hp.nombre, 'Habitación ' || hab.numero_habitacion)
+ORDER BY rp.entidad_tipo, calificacion_promedio DESC;
+```
+
+</details>
+
+<details>
+<summary>✅ Ver Solución Oficial — Parte 4: Vistas, Vistas Materializadas e Índices con EXPLAIN ANALYZE</summary>
+
+```sql
+-- =============================================================================
+-- SOLUCIONARIO OFICIAL PARCIAL 1 - PARTE 4: VISTAS E ÍNDICES
+-- =============================================================================
+
+-- 4.1 Vista Operativa Editable con WITH LOCAL CHECK OPTION
+CREATE OR REPLACE VIEW vw_habitaciones_tarifa_premium AS
+SELECT
+    habitacion_id,
+    hotel_id,
+    numero_habitacion,
+    capacidad_maxima,
+    tarifa_base_noche,
+    disponible
+FROM habitaciones
+WHERE tarifa_base_noche >= 120.00
+  AND disponible = TRUE
+WITH LOCAL CHECK OPTION;
+
+-- 4.2 Vista Materializada de KPIs Mensuales por Hotel
+CREATE MATERIALIZED VIEW mv_kpis_mensuales_hotel AS
+SELECT
+    hab.hotel_id,
+    DATE_TRUNC('month', r.fecha_checkin)::DATE AS mes_anio,
+    COUNT(r.reserva_id) AS total_reservas,
+    SUM(r.fecha_checkout - r.fecha_checkin) AS noches_vendidas,
+    SUM(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo) AS ingreso_neto,
+    ROUND(AVG(r.subtotal - COALESCE(r.descuento, 0) + r.impuesto_turismo), 2) AS ticket_promedio
+FROM reservas r
+INNER JOIN habitaciones hab ON hab.habitacion_id = r.habitacion_id
+WHERE r.estado IN ('COMPLETADA', 'CONFIRMADA')
+GROUP BY hab.hotel_id, DATE_TRUNC('month', r.fecha_checkin)::DATE
+WITH DATA;
+
+-- Creación del Índice Único obligatorio para refresco concurrente
+CREATE UNIQUE INDEX idx_uq_mv_kpis_hotel_mes
+ON mv_kpis_mensuales_hotel (hotel_id, mes_anio);
+
+-- Refresco sin bloqueo de lecturas
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_kpis_mensuales_hotel;
+
+-- 4.3 Laboratorio de Optimización con EXPLAIN (ANALYZE, BUFFERS)
+
+-- CASO A: Antes del índice (Seq Scan sobre las 10,000 reservas)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT reserva_id, codigo_reserva, fecha_checkin, fecha_checkout
+FROM reservas
+WHERE habitacion_id = 15
+  AND estado IN ('CONFIRMADA', 'PENDIENTE')
+  AND fecha_checkin >= '2026-01-01'::DATE;
+
+-- Creación de Índice Compuesto y Parcial (solo indexa reservas activas)
+CREATE INDEX idx_reservas_hab_checkin_activas
+ON reservas (habitacion_id, fecha_checkin)
+INCLUDE (codigo_reserva, fecha_checkout)
+WHERE estado IN ('CONFIRMADA', 'PENDIENTE');
+
+ANALYZE reservas;
+
+-- CASO A: Después del índice (Index Only Scan / Index Scan ultrarrápido)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT reserva_id, codigo_reserva, fecha_checkin, fecha_checkout
+FROM reservas
+WHERE habitacion_id = 15
+  AND estado IN ('CONFIRMADA', 'PENDIENTE')
+  AND fecha_checkin >= '2026-01-01'::DATE;
+
+-- CASO B: Optimización de la Tabla Polimórfica + JSONB
+CREATE INDEX idx_resenas_polimorfica_entidad
+ON resenas_polimorficas (entidad_tipo, entidad_id);
+
+CREATE INDEX idx_resenas_etiquetas_gin
+ON resenas_polimorficas USING GIN (etiquetas_json);
+
+ANALYZE resenas_polimorficas;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT resena_id, calificacion, comentario
+FROM resenas_polimorficas
+WHERE entidad_tipo = 'HOTEL'
+  AND entidad_id = 1
+  AND etiquetas_json @> '["limpieza"]'::JSONB;
+```
+
+</details>
+
+---
+
+## 🚀 7. Actividades de Refuerzo Autónomo (Puente hacia la Unidad 2)
+
+Para fortalecer la habilidad blanda del PEA (*"Realiza ejercicios extras de Funciones y Triggers de forma autónoma"*), una vez concluido el Examen Parcial 1 se propone el siguiente reto preparatorio para la **Semana 05**:
+
+1. **Reflexión Arquitectónica sobre Lógica de Negocio en el Motor:**
+   - En el Examen Parcial 1 tuviste que escribir manualmente la fórmula `subtotal - COALESCE(descuento, 0) + impuesto_turismo` en múltiples consultas y vistas.
+   - ¿Qué pasaría si el Municipio de Quito cambia la regla del impuesto turístico el próximo mes? Tendrías que modificar 20 consultas distintas.
+   - **Reto Autónomo:** Investiga cómo encapsular ese cálculo en una **Función Escalar en PL/pgSQL** (`CREATE FUNCTION calcular_total_reserva(...) RETURNS NUMERIC`) para que todas las consultas y vistas llamen a una única fuente de verdad.
+
+---
+
+## 📊 8. Rúbrica Oficial de Evaluación del Examen Parcial 1
+
+| Criterio de Evaluación | Excelente (100%) | Satisfactorio (75%) | En Proceso (50%) | Insuficiente (<25%) | Peso |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **1. Dominio Teórico y Lectura de Planes (Parte 1)** | Responde y justifica con precisión técnica las 10 preguntas de arquitectura SQL e interpretación de `EXPLAIN ANALYZE`. | Responde correctamente entre 7 y 8 preguntas con justificaciones válidas. | Responde entre 5 y 6 preguntas, con confusiones entre `WHERE`/`HAVING` o tipos de índices. | Menos de 5 respuestas correctas o sin justificación técnica. | **25%** |
+| **2. Modelamiento Lógico y DDL Avanzado (Parte 2)** | Crea las 6 tablas en 3FN sin errores sintácticos, incluyendo catálogo recursivo, tabla polimórfica y todos los `CHECK`, `UNIQUE` y `FK`. | Crea las tablas pero omite 1 o 2 restricciones `CHECK` secundarias o claves únicas compuestas. | El script presenta errores de orden de creación de claves foráneas o viola la 3FN. | El script DDL no compila en PostgreSQL. | **25%** |
+| **3. Poblamiento Masivo y Consultas Complejas (Parte 3)** | Genera los datos con `generate_series` y resuelve las 4 consultas usando `FILTER`, `HAVING`, `CTE`, `NOT EXISTS` y funciones escalares sin errores. | Resuelve al menos 3 consultas correctamente; usa `LEFT JOIN` en vez de `NOT EXISTS` o presenta detalles menores de redondeo. | Resuelve solo 1 o 2 consultas; confunde `WHERE` con `HAVING` o falla con valores `NULL`. | Consultas incompletas o con errores de sintaxis que impiden su ejecución. | **30%** |
+| **4. Vistas, Vistas Materializadas e Índices (Parte 4)** | Implementa la vista con `WITH CHECK OPTION`, la vista materializada con refresco concurrente y demuestra la mejora en `EXPLAIN ANALYZE`. | Crea las vistas e índices pero olvida el `UNIQUE INDEX` para `CONCURRENTLY` o no incluye `BUFFERS`. | Crea vistas simples e índices B-Tree básicos sin considerar predicados parciales o compuestos. | No implementa las vistas ni demuestra el uso de índices. | **20%** |
+
+---
+
+## 📖 9. Bibliografía y Recursos Recomendados
+
+1. **PostgreSQL Global Development Group.** (2026). *PostgreSQL 16 Official Documentation — Chapter 7: Queries, Chapter 11: Indexes & Chapter 41: Rules and Views*. Disponible en: `https://www.postgresql.org/docs/current/`
+2. **Silberschatz, A., Korth, H. F., & Sudarshan, S.** (2020). *Fundamentos de Bases de Datos* (7.ª ed.). McGraw-Hill.
+3. **Winand, M.** (2023). *SQL Performance Explained Everything Developers Need to Know about SQL Performance*. Disponible en: `https://use-the-index-luke.com/`
+4. **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac.** (2026). *Programa de Estudio de la Asignatura (PEA) — Base de Datos Avanzada (DS4AC1-215)*. Quito, Ecuador.
+
+---
+
+<div align="center">
+
+⬅️ [Semana 03: Vistas, Índices y Rendimiento](./semana-03-vistas-indices-rendimiento.md) &nbsp;|&nbsp; 🏠 [Volver al Sílabo General (README)](../README.md) &nbsp;|&nbsp; [Semana 05: Funciones y Procedimientos en PL/pgSQL](./semana-05-funciones-procedimientos-plpgsql.md) ➡️
+
+</div>
