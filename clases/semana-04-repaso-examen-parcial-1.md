@@ -1,59 +1,78 @@
-# 🎓 Semana 04: Repaso Integral de la Unidad 1 y Evaluación del Primer Parcial
+# 🎓 Semana 4: Repaso Integral de la Unidad 1 y Evaluación del Primer Parcial
+
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 1:** Sentencias SQL complejas, vistas e índices  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre / 2026-II |
-| **Modalidad** | Dual |
-| **Unidad Didáctica** | Unidad 1: Sentencias SQL complejas, vistas e índices |
-| **Semana** | Semana 04 de 16 |
-| **Carga Horaria Semanal** | **ACD:** 2 horas \| **APECD:** 3 horas \| **Total:** 5 horas |
-| **Tema Central (PEA)** | Espacio de preguntas y respuestas para aclarar dudas (Repaso Integral U1) y Examen Parcial 1 |
-| **Resultado de Aprendizaje (RdA)** | Diseña e implementa estructuras de datos avanzadas, consultas complejas, vistas e índices para optimizar el acceso y manipulación de datos en un SGBD relacional. |
-| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver, Terminal `psql`, Git |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices (ID Unidad: 347552) |
+| **Semana Académica** | Semana 4 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 7 (2 Horas — ACD)** | **Fecha:** Lunes 16 de noviembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Retroalimentación académica: Espacio de preguntas, respuestas y resolución de dudas sobre sentencias SQL complejas, vistas e índices. |
+| **Clase 8 (3 Horas — APECD)** | **Fecha:** Miércoles 18 de noviembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Evaluación práctica del Primer Parcial: Aplicación práctica y resolución de casos de sentencias SQL complejas, vistas e índices en laboratorio. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos de Aprendizaje, Competencias, Evidencias y Habilidades Blandas
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### 2.1 Objetivos de la Sesión
-1. **Consolidar los fundamentos teóricos y prácticos** de la Unidad 1 mediante una sesión intensiva de preguntas, respuestas y resolución de antipatrones comunes en SQL avanzado.
-2. **Integrar en un único caso empresarial real** el diseño lógico normalizado (3FN), el uso de tablas catálogo y asociaciones polimórficas, la generación de datos masivos (`generate_series`), las consultas analíticas complejas (`JOIN`, `GROUP BY`, `HAVING`, subconsultas, `CTE`), las funciones escalares, las vistas (simples y materializadas) y la indexación avanzada.
-3. **Evaluar objetivamente el desempeño individual** de cada estudiante en el Examen Parcial 1 bajo estándares de ingeniería de datos de nivel productivo en PostgreSQL.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### 2.2 Matriz de Competencias y Evidencias
+- **Objetivo General de la Semana 4:**  
+  Consolidar las competencias adquiridas en la Unidad 1 mediante retroalimentación reflexiva, clínica de dudas frecuentes y evaluación sumativa integral del Primer Parcial en laboratorio.
+- **Objetivo Específico de la Clase 7 (2 Horas (120 min) — ACD / Aula — Lunes 16 de noviembre de 2026):**  
+  Sintetizar los contenidos de la Unidad 1 mediante la resolución de dudas, análisis de errores frecuentes y estudio de casos integradores de modelado DDL, consultas analíticas, vistas e índices.
+- **Objetivo Específico de la Clase 8 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 18 de noviembre de 2026):**  
+  Evaluar en entorno de laboratorio las destrezas prácticas de modelamiento relacional, sentencias DDL, consultas complejas, vistas y optimización con índices a través de la resolución de un caso empresarial integral.
 
-| Componente | Descripción Aplicada a la Semana 04 |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 1)** | Construye consultas SQL complejas, vistas e índices sobre esquemas relacionales normalizados para garantizar integridad y alto rendimiento. |
-| **Competencia Específica** | Diagnostica cuellos de botella con `EXPLAIN ANALYZE`, diseña esquemas con restricciones declarativas estrictas y redacta consultas declarativas legibles mediante CTEs y funciones escalares. |
-| **Evidencia de Aprendizaje** | Archivo SQL ejecutable (`parcial1_apellido_nombre.sql`) y cuestionario técnico resuelto correspondientes al **Examen Parcial 1**. |
-| **Habilidades Blandas (PEA)** | Pensamiento crítico bajo presión de tiempo, atención al detalle sintáctico, honestidad académica y autocrítica técnica frente a planes de ejecución subóptimos. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 1 (PEA):** Brinda asistencia técnica en el diseño, modelamiento e ilustración del proceso de base de datos.<br>**RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Resuelve problemas complejos de modelado, extracción y optimización de datos en PostgreSQL, demostrando dominio técnico de los contenidos de la Unidad 1 bajo condiciones de evaluación sumativa.** |
+| **Competencia de la Asignatura** | Diseñar, implementar y optimizar estructuras relacionales, consultas analíticas y esquemas de indexación para garantizar un procesamiento de datos eficiente en aplicaciones de software. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Fase | Tiempo | Componente | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Fase 1** | `00:00 - 00:45` (45 min) | **ACD** | **Síntesis Arquitectónica Unidad 1:** Mapa conceptual integrador, repaso de normalización, tablas catálogo/polimórficas y flujo de evaluación lógica de SQL. |
-| **Fase 2** | `00:45 - 01:30` (45 min) | **ACD** | **Clínica de Código y FAQ:** Análisis en vivo de los 6 errores más frecuentes cometidos en las semanas 1 a 3 y cómo solucionarlos en PostgreSQL. |
-| **Fase 3** | `01:30 - 02:00` (30 min) | **ACD** | **Preparación de Entorno y Reglas del Examen:** Verificación de instancia local PostgreSQL, creación de base de datos limpia y lectura guiada del caso empresarial. |
-| **Fase 4** | `02:00 - 02:30` (30 min) | **APECD** | **Examen Parcial 1 - Parte 1:** Evaluación Teórica y Análisis de Planes de Ejecución (`EXPLAIN ANALYZE`). |
-| **Fase 5** | `02:30 - 03:15` (45 min) | **APECD** | **Examen Parcial 1 - Parte 2:** Modelamiento Lógico, Tablas Catálogo, Polimórficas e Implementación DDL. |
-| **Fase 6** | `03:15 - 04:15` (60 min) | **APECD** | **Examen Parcial 1 - Parte 3:** Poblamiento Masivo (`generate_series`) y Consultas SQL Complejas. |
-| **Fase 7** | `04:15 - 05:00` (45 min) | **APECD** | **Examen Parcial 1 - Parte 4:** Vistas, Vistas Materializadas, Optimización con Índices y Entrega del Script. |
+### 📅 CLASE 7: Lunes 16 de noviembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 7.1** | 40 min | **ACD** | Síntesis Ejecutiva de la Unidad 1: Mapa conceptual integrador de modelado lógico relacional, tablas catálogo unificadas, arcos polimórficos, orden lógico de consultas SQL y taxonomía de índices. |
+| **Bloque 7.2** | 40 min | **ACD** | Clínica de Dudas y Errores Frecuentes (FAQ Técnico): Análisis interactivo de los 6 errores típicos en exámenes (trampa de `NOT IN` con nulos, expresiones no SARGables, división entera, orden de índices compuestos). |
+| **Bloque 7.3** | 40 min | **ACD** | Espacio de Preguntas y Respuestas Abiertas: Resolución guiada de inquietudes de los estudiantes y simulacro rápido de reactivos. |
+
+### 🔬 CLASE 8: Miércoles 18 de noviembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 8.1** | 30 min | **APECD** | Evaluación Parte 1: Teoría Aplicada y Análisis de Planes de Ejecución (25 Puntos): Interpretación de planes `EXPLAIN ANALYZE` y preguntas conceptuales de arquitectura. |
+| **Bloque 8.2** | 45 min | **APECD** | Evaluación Parte 2: Modelamiento Lógico, Catálogos, Polimorfismo y DDL (25 Puntos): Implementación de esquemas relacionales empresariales y restricciones. |
+| **Bloque 8.3** | 60 min | **APECD** | Evaluación Parte 3: Consultas Complejas, Vistas e Índices (30 Puntos): Formulación de consultas analíticas avanzadas, creación de vistas materializadas y diseño de índices óptimos. |
+| **Bloque 8.4** | 45 min | **APECD** | Evaluación Parte 4 y Cierre: Optimización de Rendimiento y Rúbrica Oficial (20 Puntos): Entrega del script final, retroalimentación y aplicación de rúbrica. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual Profundo: Síntesis Ejecutiva de la Unidad 1 (ACD)
+## 📚 4. PARTE I: CLASE 7 (16/11/2026 — 2 Horas / ACD) — Retroalimentación Académica y Síntesis de Unidad 1
 
 Esta primera parte de la sesión (**2 horas ACD**) funciona como un espacio abierto de preguntas y respuestas apoyado en hojas de referencia rápida (*Cheat Sheets*) para despejar cualquier duda antes de iniciar la evaluación práctica.
 
@@ -181,7 +200,7 @@ flowchart TD
 
 ---
 
-## 💻 5. Clínica de Dudas y Errores Frecuentes (FAQ con Código Ejecutable)
+## 💻 5. CLASE 7: Clínica de Dudas y Errores Frecuentes (FAQ Técnico Ejecutable — ACD 2 Horas)
 
 Durante las primeras tres semanas, los siguientes **6 antipatrones** suelen provocar pérdidas de puntos en las evaluaciones. Analicemos cada uno en vivo con su respectiva corrección.
 
@@ -283,7 +302,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ingresos_mensuales;
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental (APECD - 3 Horas): Examen Parcial 1 Oficial
+## 🛠️ 6. PARTE II: CLASE 8 (18/11/2026 — 3 Horas / APECD) — Examen Práctico del Primer Parcial Oficial
 
 ### 🏛️ Caso Empresarial Integrador: Plataforma "Yavirac Heritage Stays"
 
@@ -920,7 +939,7 @@ WHERE entidad_tipo = 'HOTEL'
 
 ---
 
-## 🚀 7. Actividades de Refuerzo Autónomo (Puente hacia la Unidad 2)
+## 🚀 7. PARTE III: Actividades de Refuerzo, Examen Alternativo, Rúbrica y Bibliografía
 
 Para fortalecer la habilidad blanda del PEA (*"Realiza ejercicios extras de Funciones y Triggers de forma autónoma"*), una vez concluido el Examen Parcial 1 se propone el siguiente reto preparatorio para la **Semana 05**:
 

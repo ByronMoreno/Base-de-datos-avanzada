@@ -1,58 +1,77 @@
-# ⚡ Semana 7: Implementación Avanzada de Triggers en Producción
+# ⚡ Semana 7: Implementación Avanzada de Triggers en Entornos Empresariales
+
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 2:** Generación de procedimientos, funciones y triggers  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial (PEA) |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre — Periodo Académico `2026-II` |
-| **Modalidad** | Dual |
-| **Unidad Curricular** | **Unidad 2:** Generación de procedimientos, funciones y triggers (Cierre de Unidad) |
-| **Semana** | Semana 7 de 9 |
-| **Carga Horaria Semanal** | **5 Horas Totales** — Aprendizaje en Contacto con el Docente (**ACD**): `2h` \| Aprendizaje Práctico-Experimental en Contacto con el Docente (**APECD**): `3h` |
-| **Contenidos del PEA** | Implementación de Trigger |
-| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver / DataGrip, Terminal `psql`, Git |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 2: Generación de procedimientos, funciones y triggers (ID Unidad: 347553) |
+| **Semana Académica** | Semana 7 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 13 (2 Horas — ACD)** | **Fecha:** Lunes 07 de diciembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Implementación de Triggers: Casos avanzados de aplicación, triggers condicionales y manejo de reglas de integridad referencial compleja. |
+| **Clase 14 (3 Horas — APECD)** | **Fecha:** Miércoles 09 de diciembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Implementación, pruebas integrales e invocación de triggers combinados con procedimientos almacenados. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Diseñar, implementar y optimizar arquitecturas empresariales de **Triggers en PostgreSQL (PL/pgSQL)** aplicadas a sistemas transaccionales en producción, abarcando control de inventario en tiempo real, auditoría forense diferencial con `JSONB`, sincronización de campos calculados desnormalizados, borrado lógico (*Soft Delete*), vistas actualizables con `INSTEAD OF` y control de recursividad.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 7:**  
+  Implementar arquitecturas avanzadas de automatización en bases de datos integrando triggers condicionales, reglas de negocio complejas y procedimientos almacenados en PostgreSQL.
+- **Objetivo Específico de la Clase 13 (2 Horas (120 min) — ACD / Aula — Lunes 07 de diciembre de 2026):**  
+  Analizar patrones avanzados de disparadores en entornos de alta concurrencia, abordando triggers condicionales con WHEN, control de inventarios/stock, arcos de integridad referencial compleja y prevención de recursividad infinita.
+- **Objetivo Específico de la Clase 14 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 09 de diciembre de 2026):**  
+  Implementar y evaluar flujos transaccionales combinando disparadores con procedimientos almacenados, auditoría forense con JSONB y borrado lógico mediante vistas editables con INSTEAD OF.
 
-| Componente Curricular | Descripción Oficial según el PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers. |
-| **Resultado de Aprendizaje (RdA 3)** | Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. |
-| **Competencia Específica** | Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información. |
-| **Actividad ACD (2h)** | Implementar un trigger (Patrones avanzados de arquitectura con Triggers en sistemas en producción). |
-| **Actividad APECD (3h)** | Crear e invocar trigger (Taller práctico integrador de cierre de la Unidad 2). |
-| **Evidencia de Aprendizaje** | Scripts SQL/PLpgSQL funcionales con motores de reglas de negocio, auditoría `JSONB` y pruebas de validación ante casos borde. |
-| **Habilidades Blandas** | Pensamiento sistémico, atención al detalle en integridad financiera, responsabilidad ética en el rastro de auditoría y resolución colaborativa de problemas. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software.<br>**RdA 3 (PEA):** Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Diseña e implementa soluciones automatizadas avanzadas mediante triggers condicionales y procedimientos almacenados en PostgreSQL, garantizando la consistencia y trazabilidad de los datos.** |
+| **Competencia de la Asignatura** | Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Duración | Componente | Tema / Actividad |
+### 📅 CLASE 13: Lunes 07 de diciembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
 | :---: | :---: | :---: | :--- |
-| **1** | 30 min | **ACD** | Arquitectura de ejecución de Triggers en producción, orden de disparo y matrices de eventos (`INSERT`, `UPDATE`, `DELETE`). |
-| **2** | 35 min | **ACD** | **Patrones 1, 2 y 3:** Control de stock en tiempo real con `RAISE EXCEPTION`, Auditoría forense diferencial con `JSONB` y Mantenimiento de tablas resumen / campos desnormalizados. |
-| **3** | 35 min | **ACD** | **Patrones 4 y 5:** Borrado lógico (*Soft Delete*), Triggers `INSTEAD OF` sobre vistas complejas, prevención de recursividad (`pg_trigger_depth()`) y optimización con tablas de transición. |
-| **4** | 20 min | **ACD** | Demostración en vivo: Ejecución guiada de los 5 patrones en PostgreSQL y análisis de planes de ejecución. |
-| **5** | 150 min | **APECD** | **Taller Práctico Integrador de Unidad 2:** Construcción del motor de reglas de negocio y auditoría forense para la distribuidora *TechAndes S.A.* (5 retos progresivos). |
-| **6** | 30 min | **APECD** | Revisión cruzada de código, validación de casos borde, rúbrica de evaluación y cierre de la Unidad 2. |
+| **Bloque 13.1** | 40 min | **ACD** | Tubería Completa de Ejecución y Casos Avanzados: Prioridad de constraints vs triggers, orden lexicográfico de disparadores, triggers condicionales con `WHEN`, y prevención de bucles recursivos con `pg_trigger_depth()`. |
+| **Bloque 13.2** | 40 min | **ACD** | Patrones Arquitectónicos Empresariales: Control estricto de inventarios con bloqueo de filas, auditoría forense diferencial con `JSONB`, mantenimiento de agregados desnormalizados y borrado lógico (*soft delete*) con vistas e `INSTEAD OF`. |
+| **Bloque 13.3** | 40 min | **ACD** | Ejemplos Guiados Paso a Paso: Implementación y verificación integral de los 5 patrones en PostgreSQL sobre un esquema de facturación y stock. |
+
+### 🔬 CLASE 14: Miércoles 09 de diciembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 14.1** | 50 min | **APECD** | Laboratorio Fase 1: Configuración de Esquema y Reglas de Inventario: Despliegue de la base *TechAndes*, triggers de validación de crédito y reserva automática de existencias. |
+| **Bloque 14.2** | 80 min | **APECD** | Laboratorio Fase 2: Integración de Triggers con Procedimientos Almacenados: Procedimiento transaccional de facturación que dispara validación de stock, cálculo de kardex y auditoría diferencial. |
+| **Bloque 14.3** | 50 min | **APECD** | Laboratorio Fase 3: Pruebas de Estrés Transaccional y Solucionario: Simulación de cancelaciones, devoluciones y soft delete; validación de consistencia, feedback docente y rúbrica. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual Profundo (ACD - 2 Horas)
+## 📚 4. PARTE I: CLASE 13 (07/12/2026 — 2 Horas / ACD) — Implementación Avanzada de Triggers en Producción
 
 En la Semana 6 estudiamos la anatomía sintáctica de un *trigger* (`CREATE FUNCTION ... RETURNS TRIGGER` + `CREATE TRIGGER`), las pseudovariables `NEW` y `OLD`, y la diferencia básica entre `BEFORE` y `AFTER`. En esta **Semana 7**, damos el salto de la sintaxis básica a la **ingeniería de software en producción**: ¿cómo se diseñan triggers robustos que soportan miles de operaciones por minuto sin corromper saldos contables ni generar bucles infinitos?
 
@@ -226,7 +245,7 @@ Si ejecutas `UPDATE productos SET precio = precio * 1.05;` sobre 50,000 producto
 
 ---
 
-## 💻 5. Ejemplos Guiados Paso a Paso en PostgreSQL
+## 💻 5. CLASE 13: Ejemplos Guiados Paso a Paso en PostgreSQL (ACD — 2 Horas)
 
 A continuación, construimos un laboratorio completo y 100% ejecutable que demuestra en acción los **5 patrones de arquitectura en producción**.
 
@@ -697,7 +716,7 @@ SELECT auditoria_id, esquema_tabla, operacion, diferencias
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD - 3 Horas)
+## 🛠️ 6. PARTE II: CLASE 14 (09/12/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Caso de Estudio Integrador de Cierre de Unidad 2: *Distribuidora Mayorista TechAndes S.A.*
 
@@ -1253,7 +1272,7 @@ EXECUTE FUNCTION fn_instead_of_vw_stock_quito();
 
 ---
 
-## 🚀 7. Actividades de Refuerzo Autónomo
+## 🚀 7. PARTE III: Actividades de Refuerzo, Casos Reales en Producción, Rúbrica y Bibliografía
 
 1. **Tablas de Transición (`REFERENCING NEW TABLE AS ...`):** Investiga e implementa una versión `FOR EACH STATEMENT` del trigger de auditoría forense de `productos` empleando tablas de transición, y compara con `EXPLAIN ANALYZE` el tiempo de ejecución al actualizar 10,000 registros de golpe frente al trigger `FOR EACH ROW`.
 2. **Triggers Condicionales con Cláusula `WHEN`:** Refactoriza los triggers del taller para que el trigger de auditoría de `articulos` solo se dispare cuando cambie `costo_promedio`, `precio_mayorista` o `activo`, ignorando actualizaciones cosméticas en `descripcion`.

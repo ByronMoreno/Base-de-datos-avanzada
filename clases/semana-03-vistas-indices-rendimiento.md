@@ -2,60 +2,76 @@
 
 > **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
 > **Carrera:** Tecnología Superior en Desarrollo de Software  
-> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`)  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
 > **Unidad 1:** Sentencias SQL complejas, vistas e índices  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Parámetro | Detalle Oficial según PEA |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
 | **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
-| **Periodo Académico** | 2026 - II |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
 | **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
-| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices (Cierre de Unidad 1) |
-| **Semana** | Semana 3 de 8 |
-| **Carga Horaria Semanal** | **ACD:** 2 horas \| **APECD:** 3 horas \| **APEA:** 0 horas \| **AA:** 0 horas \| **Total:** 5 horas |
-| **Prerrequisitos** | Semana 1 (DDL, Catálogos, Polimorfismo) y Semana 2 (SQL Avanzado, CTEs, Ingreso Masivo con `generate_series`) |
-| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4 (Explain Visualizer), Visual Studio Code |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices (ID Unidad: 347552) |
+| **Semana Académica** | Semana 3 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 5 (2 Horas — ACD)** | **Fecha:** Lunes 09 de noviembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Vistas e Índices: Clase magistral de vistas mediante consultas complejas. Fundamentos teóricos de índices, arquitectura, tipos y utilidad en optimización. |
+| **Clase 6 (3 Horas — APECD)** | **Fecha:** Miércoles 11 de noviembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Creación y eliminación de vistas. Creación, modificación y eliminación de índices, comparando rendimiento en consultas SQL con y sin índice. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Diseñar, administrar y optimizar **Vistas Estándar (`VIEW`)**, **Vistas Materializadas (`MATERIALIZED VIEW`)** e **Índices (`INDEX`)** en **PostgreSQL**, aplicando herramientas de diagnóstico del planificador de consultas (`EXPLAIN (ANALYZE, BUFFERS)`) sobre volúmenes masivos de datos para reducir drásticamente los tiempos de respuesta y el consumo de lectura en disco (`I/O`).
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 3:**  
+  Optimizar el rendimiento y la seguridad relacional mediante el diseño e implementación de vistas estándar, vistas materializadas y estrategias avanzadas de indexación, verificando las mejoras con planes de ejecución en PostgreSQL.
+- **Objetivo Específico de la Clase 5 (2 Horas (120 min) — ACD / Aula — Lunes 09 de noviembre de 2026):**  
+  Analizar la arquitectura, funcionamiento interno y tipos de índices (B-Tree, Hash, GIN, BRIN), así como los mecanismos de abstracción y persistencia de vistas estándar y materializadas en PostgreSQL.
+- **Objetivo Específico de la Clase 6 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 11 de noviembre de 2026):**  
+  Crear, modificar y eliminar vistas e índices en PostgreSQL, evaluando cuantitativamente el impacto en el rendimiento y costo computacional mediante planes de ejecución con EXPLAIN ANALYZE.
 
-| Componente Curricular | Descripción Oficial PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 2)** | Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software *(Implementación de vistas e índices para optimización de consultas)*. |
-| **Competencia Específica** | Abstraer la complejidad de consultas relacionales mediante vistas seguras y optimizar el rendimiento de lectura de la base de datos mediante estrategias de indexación y análisis de planes de ejecución. |
-| **Contenidos de la Semana** | • Vistas (Vistas virtuales, actualizables y materializadas)<br>• Implementación de Índices (Arquitectura, tipos de índices en PostgreSQL, mantenimiento y pruebas de rendimiento). |
-| **Actividades ACD (2h)** | Clase magistral de vistas mediante consultas complejas. Investigan tema índices, qué son y para qué sirven. |
-| **Actividades APECD (3h)** | Crear / Eliminar vistas. Crear, modificar y eliminar índices. Comparar rendimiento en consultas SQL con índice y sin índice. |
-| **Evidencia de Aprendizaje** | Script SQL de creación/gestión de vistas e índices y cuadro comparativo de rendimiento (`EXPLAIN ANALYZE` antes y después de indexar). |
-| **Habilidades Blandas** | Pensamiento orientado al rendimiento (*Performance Mindset*), toma de decisiones basada en métricas empíricas y documentación técnica. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Diseña e implementa vistas e índices optimizados, analiza planes de ejecución y compara el rendimiento computacional de consultas SQL en PostgreSQL.** |
+| **Competencia de la Asignatura** | Aplicar herramientas y tecnologías de bases de datos avanzadas para implementar mecanismos de procesamiento y gestión eficiente de la información en aplicaciones de software. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Componente | Tiempo | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Bloque 1** | **ACD** | 40 min | **Clase Magistral de Vistas:** Vistas Estándar (`CREATE OR REPLACE VIEW`), seguridad por columnas/filas (`WITH CHECK OPTION`), reglas de evolución de esquemas y Vistas Materializadas (`CREATE MATERIALIZED VIEW`, `REFRESH CONCURRENTLY`). |
-| **Bloque 2** | **ACD** | 40 min | **Investigación Guiada de Índices en PostgreSQL:** ¿Qué ocurre en el disco duro? Páginas de 8KB (*Heap*) vs. árbol balanceado **B-Tree**, índices **Hash**, **GIN**, **GiST** y **BRIN**. |
-| **Bloque 3** | **ACD** | 40 min | **Patrones Avanzados de Indexación y Planes de Ejecución:** Índices compuestos, parciales (`WHERE`), funcionales, `INCLUDE` y lectura de `EXPLAIN (ANALYZE, BUFFERS)`. |
-| **Bloque 4** | **APECD** | 60 min | **Taller Fase 1 (Vistas Complejas y Materializadas):** Construcción, modificación y eliminación de vistas operativas y analíticas sobre un dataset de 100,000 transacciones. |
-| **Bloque 5** | **APECD** | 90 min | **Taller Fase 2 (Laboratorio de Índices y Benchmarking):** Creación, modificación (`ALTER INDEX`, `REINDEX`) y eliminación de índices; medición empírica del tiempo en milisegundos (`Seq Scan` vs `Index Scan`). |
-| **Bloque 6** | **APECD** | 30 min | **Socialización de Resultados y Cierre de la Unidad 1:** Análisis del costo de sobre-indexación en operaciones de escritura (`INSERT`/`UPDATE`/`DELETE`). |
+### 📅 CLASE 5: Lunes 09 de noviembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 5.1** | 40 min | **ACD** | Clase Magistral de Vistas en PostgreSQL: Abstracción y encapsulamiento mediante consultas complejas, vistas estándar (`VIEW`) vs. vistas materializadas (`MATERIALIZED VIEW`), refresco concurrente y vistas actualizables con `WITH CHECK OPTION`. |
+| **Bloque 5.2** | 40 min | **ACD** | Fundamentos Teóricos y Arquitectura de Índices: Estructura interna B-Tree, páginas en disco, punteros al *Heap*, índices Hash, GIN, BRIN, índices compuestos, parciales y basados en expresiones. |
+| **Bloque 5.3** | 40 min | **ACD** | Planes de Ejecución y Ejemplos Guiados: Lectura de `EXPLAIN (ANALYZE, BUFFERS)`, análisis de `Seq Scan` vs `Index Scan` vs `Bitmap Index Scan` y costo computacional. |
+
+### 🔬 CLASE 6: Miércoles 11 de noviembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 6.1** | 50 min | **APECD** | Laboratorio Fase 1: Creación, Modificación y Eliminación de Vistas: Implementación de vistas comerciales complejas, vista materializada para reportería gerencial y prueba de `REFRESH MATERIALIZED VIEW CONCURRENTLY`. |
+| **Bloque 6.2** | 80 min | **APECD** | Laboratorio Fase 2: Benchmarking con y sin Índices: Pruebas de estrés sobre cientos de miles de registros, creación de índices parciales, compuestos y de expresiones, midiendo la aceleración de consultas. |
+| **Bloque 6.3** | 50 min | **APECD** | Laboratorio Fase 3: Solucionario y Conclusiones de Optimización: Validación de planes de ejecución optimizados, eliminación de índices innecesarios, feedback docente y rúbrica. |
 
 ---
 
-## 🧠 4. Desarrollo Teórico-Conceptual Profundo
+## 🧠 4. PARTE I: CLASE 5 (09/11/2026 — 2 Horas / ACD) — Desarrollo Teórico-Conceptual Profundo
 
 ### 4.1. Vistas en PostgreSQL: Abstracción, Seguridad y Materialización
 
@@ -196,7 +212,7 @@ Para comparar científicamente el rendimiento con y sin índice usamos el comand
 
 ---
 
-## 💻 5. Ejemplo Guiado Paso a Paso en PostgreSQL
+## 💻 5. CLASE 5: Ejemplos Guiados Paso a Paso en PostgreSQL (ACD — 2 Horas)
 
 En este ejemplo guiado crearemos una base de datos de **100,000 transacciones electrónicas**, implementaremos vistas estándar y materializadas, y mediremos en vivo la diferencia de rendimiento entre una consulta **sin índice (`Seq Scan`)** y **con índice (`Index Scan`)**.
 
@@ -338,7 +354,7 @@ WHERE codigo_autorizacion = 'AUTH-2026-0085432';
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD — 3 Horas)
+## 🛠️ 6. PARTE II: CLASE 6 (11/11/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario del Taller: Optimización y Gestión de Vistas e Índices en `pasarela_pagos`
 
@@ -629,7 +645,7 @@ DROP INDEX IF EXISTS idx_temporal_redundante;
 
 ---
 
-## 🚀 7. Actividades de Refuerzo y Cierre de la Unidad 1
+## 🚀 7. PARTE III: Actividades de Refuerzo, Benchmarking en Producción, Rúbrica y Bibliografía
 
 Al finalizar la Semana 3 concluimos la **Unidad 1: Sentencias SQL complejas, vistas e índices**. Para asegurar un dominio sobresaliente antes de pasar a la **Unidad 2 (Funciones, Procedimientos Almacenados y Triggers en la Semana 4)**, verifica que tu proyecto cumpla con las siguientes prácticas profesionales:
 

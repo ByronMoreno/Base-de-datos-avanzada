@@ -1,57 +1,76 @@
 # 🎓 Semana 9: Repaso Integral, Examen Parcial 2, Examen de Recuperación y Cierre de Asignatura
 
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 3:** Transacciones y Seguridad  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
+
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial (PEA) |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre — Periodo Académico `2026-II` |
-| **Modalidad** | Dual |
-| **Unidad Curricular** | **Unidad 3:** Transacciones y Seguridad (Cierre de Unidad 3 y de la Asignatura) |
-| **Semana** | Semana 9 de 9 |
-| **Carga Horaria Semanal** | **5 Horas Totales** — Aprendizaje en Contacto con el Docente (**ACD**): `2h` \| Aprendizaje Práctico-Experimental en Contacto con el Docente (**APECD**): `3h` |
-| **Contenidos del PEA** | Examen parcial 2; Examen recuperación |
-| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver, Terminal `psql`, Git |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 3: Transacciones y Seguridad (ID Unidad: 347554) |
+| **Semana Académica** | Semana 9 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 17 (2 Horas — ACD)** | **Fecha:** Lunes 21 de diciembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Retroalimentación final: Espacio de preguntas, respuestas y aclaración de dudas generales sobre transacciones, seguridad y contenidos de la asignatura. |
+| **Clase 18 (3 Horas — APECD)** | **Fecha:** Miércoles 23 de diciembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Evaluación práctica del Segundo Parcial y examen de recuperación en laboratorio. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Consolidar los conocimientos teóricos y prácticos de las **Unidades 2 y 3** (Funciones, Procedimientos Almacenados, PL/pgSQL, Triggers, Transacciones ACID, Concurrencia MVCC y Seguridad DCL/RLS) mediante una sesión estructurada de preguntas y respuestas, evaluar el logro de los Resultados de Aprendizaje en el **Examen del Segundo Parcial**, validar la sustentación del **Proyecto de Integración de Saberes (PIS)** y aplicar el **Examen de Recuperación** integral.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 9:**  
+  Consolidar los aprendizajes de las Unidades 2 y 3 mediante retroalimentación académica, evaluar el rendimiento en el Examen del Segundo Parcial, aplicar el examen de recuperación y concretar el cierre de la asignatura.
+- **Objetivo Específico de la Clase 17 (2 Horas (120 min) — ACD / Aula — Lunes 21 de diciembre de 2026):**  
+  Aclarar dudas generales y consolidar los conocimientos teóricos de las Unidades 2 y 3 (funciones, procedimientos, triggers, transacciones y seguridad) mediante una sesión estructurada de retroalimentación académica.
+- **Objetivo Específico de la Clase 18 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 23 de diciembre de 2026):**  
+  Evaluar en entorno de laboratorio el dominio técnico de programación en el servidor, integridad transaccional y control de accesos mediante la aplicación del Examen del Segundo Parcial y el Examen de Recuperación Integral.
 
-| Componente Curricular | Descripción Oficial según el PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 1)** | Realiza consultas avanzadas para extraer datos relevantes de múltiples tablas, vistas e índices. |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers. |
-| **Resultado de Aprendizaje (RdA 3)** | Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. |
-| **Actividad ACD (2h)** | Espacio de preguntas y respuestas, para aclarar dudas (Repaso ejecutivo de Unidades 2 y 3 y revisión final del Proyecto de Integración de Saberes). |
-| **Actividad APECD (3h)** | Evaluación del segundo parcial y Examen de recuperación. |
-| **Evidencia de Aprendizaje** | Resolución escrita y práctica en laboratorio del Examen Parcial 2, entrega/defensa del Proyecto Integrador y Examen de Recuperación (cuando aplique). |
-| **Habilidades Blandas** | Integridad académica, gestión del tiempo bajo presión, comunicación técnica efectiva y pensamiento crítico. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 1 (PEA):** Brinda asistencia técnica en el diseño, modelamiento e ilustración del proceso de base de datos.<br>**RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software.<br>**RdA 3 (PEA):** Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información.<br>**RdA 4 (PEA):** Realiza procesos de análisis y verificación de consistencia de datos extraídos de diversas fuentes, que permitan generar reportes relevantes para una organización. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Demuestra dominio integral en el desarrollo de procedimientos, triggers, transacciones seguras y optimización de bases de datos relacionales en PostgreSQL bajo evaluación sumativa.** |
+| **Competencia de la Asignatura** | Diseñar, programar, optimizar y administrar bases de datos relacionales garantizando consistencia, automatización, integridad y seguridad en aplicaciones empresariales. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Duración | Componente | Tema / Actividad |
+### 📅 CLASE 17: Lunes 21 de diciembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
 | :---: | :---: | :---: | :--- |
-| **1** | 45 min | **ACD** | **Repaso Ejecutivo y *Cheat Sheet* (Unidades 2 y 3):** Síntesis comparativa de Funciones vs Procedimientos, Triggers (`BEFORE`/`AFTER`/`INSTEAD OF`), Transacciones ACID, MVCC y Seguridad RBAC/RLS. |
-| **2** | 45 min | **ACD** | **Espacio de Preguntas y Respuestas (FAQ Técnico):** Resolución en vivo de las 10 dudas más frecuentes y depuración de errores comunes en PL/pgSQL y permisos. |
-| **3** | 30 min | **ACD** | **Revisión del Proyecto de Integración de Saberes (PIS):** Verificación de entregables técnicos según la matriz de evaluación sumativa del PEA. |
-| **4** | 90 min | **APECD** | **Aplicación del Examen Parcial 2 (Teórico + Laboratorio Práctico):** Caso *Cooperativa de Ahorro y Crédito CoopYavirac Ltda.* |
-| **5** | 90 min | **APECD** | **Retroalimentación del Parcial 2 y Aplicación del Examen de Recuperación (Unidades 1, 2 y 3):** Caso *Sistema Hospitalario y Farmacéutico AndesMed S.A.* |
+| **Bloque 17.1** | 45 min | **ACD** | Repaso Ejecutivo y Cheat Sheet de Unidades 2 y 3: Comparativa de rutinas (Funciones vs Procedimientos vs Triggers), transacciones ACID, aislamiento MVCC y jerarquía RBAC/RLS. |
+| **Bloque 17.2** | 45 min | **ACD** | Espacio de Preguntas y Respuestas (FAQ Técnico): Resolución interactiva de las dudas más frecuentes y depuración de errores comunes en PostgreSQL. |
+| **Bloque 17.3** | 30 min | **ACD** | Revisión Final del Proyecto de Integración de Saberes (PIS): Verificación de criterios de calidad técnica, entregables y matriz de evaluación. |
+
+### 🔬 CLASE 18: Miércoles 23 de diciembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 18.1** | 90 min | **APECD** | Examen del Segundo Parcial Oficial (Teórico + Laboratorio Práctico): Resolución de caso integral *Cooperativa de Ahorro y Crédito CoopYavirac Ltda.* (procedimientos, triggers, transacciones y roles). |
+| **Bloque 18.2** | 90 min | **APECD** | Examen de Recuperación Integral y Cierre de Asignatura: Aplicación de la prueba de recuperación para estudiantes que lo requieran (*Red Hospitalaria AndesMed S.A.*), retroalimentación sumativa y acta final. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual: Repaso Ejecutivo y FAQ (ACD - 2 Horas)
+## 📚 4. PARTE I: CLASE 17 (21/12/2026 — 2 Horas / ACD) — Retroalimentación Final y Repaso Ejecutivo
 
 ### 4.1. Mapa Conceptual Integrador de la Asignatura (`DS4AC1-215`)
 
@@ -170,7 +189,7 @@ Durante la sesión de contacto con el docente resolvemos las **8 dudas críticas
 
 ---
 
-## 📝 5. Examen del Segundo Parcial (APECD - 90 Minutos)
+## 📝 5. PARTE II: CLASE 18 (23/12/2026 — 3 Horas / APECD) — Examen del Segundo Parcial y Examen de Recuperación
 
 ### Instrucciones Generales de Evaluación
 - **Unidades Evaluadas:** Unidad 2 (Procedimientos, Funciones y Triggers) y Unidad 3 (Transacciones, Concurrencia y Seguridad).
@@ -550,7 +569,7 @@ GRANT USAGE, SELECT
 
 ---
 
-## 🛡️ 6. Examen de Recuperación Integral (Unidades 1, 2 y 3 — 90 Minutos)
+## 🛡️ 6. Examen de Recuperación Integral (Unidades 1, 2 y 3 — Laboratorio APECD)
 
 Este examen evalúa de manera integral **los tres Resultados de Aprendizaje del semestre** (Unidad 1: Consultas avanzadas, Vistas e Índices; Unidad 2: Funciones, Procedimientos y Triggers; Unidad 3: Transacciones, Concurrencia y Seguridad).
 
@@ -823,7 +842,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA andesmed TO rol_farmaceutico;
 
 ---
 
-## 🏆 7. Guía Oficial de Entrega del Proyecto de Integración de Saberes (PIS)
+## 🏆 7. PARTE III: Proyecto de Integración de Saberes (PIS), Datasets Reales, Calificación y Bibliografía
 
 Conforme al **Sistema de Evaluación Sumativa del PEA Oficial** de la asignatura (`DS4AC1-215`), el **Proyecto de Integración de Saberes** constituye un pilar de la evaluación de fin de periodo. A continuación se detalla la lista de verificación técnica (*Checklist*) que cada equipo debe presentar en su repositorio Git:
 

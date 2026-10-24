@@ -1,58 +1,77 @@
-# ⚙️ Semana 05: Programación en el Servidor con Funciones y Procedimientos Almacenados en PL/pgSQL
+# ⚙️ Semana 5: Programación en el Servidor con Funciones y Procedimientos Almacenados en PL/pgSQL
+
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 2:** Generación de procedimientos, funciones y triggers  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre / 2026-II |
-| **Modalidad** | Dual |
-| **Unidad Didáctica** | Unidad 2: Generación de procedimientos, funciones y triggers |
-| **Semana** | Semana 05 de 16 |
-| **Carga Horaria Semanal** | **ACD:** 1 hora \| **APECD:** 4 horas \| **Total:** 5 horas |
-| **Contenidos (PEA)** | Funciones, procedimientos almacenados; Crea, modifica y elimina función y procedimiento (`PL/pgSQL`, argumentos, tipos de retorno, `RECORD`, `SELECT ... INTO`) |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers. |
-| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver, Extensión `plpgsql` (nativa), Git |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 2: Generación de procedimientos, funciones y triggers (ID Unidad: 347553) |
+| **Semana Académica** | Semana 5 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 9 (2 Horas — ACD)** | **Fecha:** Lunes 23 de noviembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Funciones y Procedimientos Almacenados: Análisis de sintaxis, argumentos, tipos de retornos, uso de tipo RECORD (NEW, OLD), cláusula INTO y fundamentos de PL/pgSQL. |
+| **Clase 10 (3 Horas — APECD)** | **Fecha:** Miércoles 25 de noviembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Ejercicios de desarrollo, creación, invocación, modificación y eliminación de funciones y procedimientos almacenados en PostgreSQL. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos de Aprendizaje, Competencias, Evidencias y Habilidades Blandas
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### 2.1 Objetivos de la Sesión
-1. **Diferenciar arquitectónicamente** las **Funciones (`FUNCTION`)** de los **Procedimientos Almacenados (`PROCEDURE`)** en PostgreSQL, comprendiendo su invocación (`SELECT` vs `CALL`), su capacidad de retorno y el control de transacciones (`COMMIT`/`ROLLBACK`).
-2. **Dominar la sintaxis y semántica del lenguaje procedural `PL/pgSQL`**, incluyendo bloques estructurados, declaración de variables escalares, `%TYPE`, `%ROWTYPE` y `RECORD`, asignación con `SELECT ... INTO` (`STRICT` y `FOUND`), estructuras condicionales, bucles y manejo de excepciones (`RAISE`).
-3. **Diseñar, crear, modificar y eliminar** funciones escalares, funciones tabulares (`RETURNS TABLE` / `RETURNS SETOF`) y procedimientos transaccionales complejos en un taller práctico de 4 horas.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### 2.2 Matriz de Competencias y Evidencias
+- **Objetivo General de la Semana 5:**  
+  Desarrollar la lógica de negocio en el motor de bases de datos mediante funciones y procedimientos almacenados en PL/pgSQL, aplicando estructuras de control, manejo de registros dinámicos y control transaccional.
+- **Objetivo Específico de la Clase 9 (2 Horas (120 min) — ACD / Aula — Lunes 23 de noviembre de 2026):**  
+  Comprender los fundamentos de la programación procedural en PL/pgSQL, analizando la sintaxis, modos de argumentos, tipos de retorno, uso del tipo RECORD y cláusula INTO en funciones y procedimientos almacenados.
+- **Objetivo Específico de la Clase 10 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 25 de noviembre de 2026):**  
+  Desarrollar, invocar, modificar y eliminar funciones escalares, tabulares y procedimientos con control transaccional autónomo en PostgreSQL mediante ejercicios prácticos de laboratorio.
 
-| Componente | Descripción Aplicada a la Semana 05 |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers para encapsular reglas de negocio críticas dentro del motor de base de datos. |
-| **Competencia Específica** | Implementa rutinas modulares en `PL/pgSQL` utilizando modos de parámetros (`IN`, `OUT`, `INOUT`, `VARIADIC`), tipos compuestos (`RECORD`), captura de estado (`SELECT INTO`) y manejo robusto de errores (`EXCEPTION`). |
-| **Evidencia de Aprendizaje** | Script de laboratorio `semana05_plpgsql_rutinas.sql` con 6 funciones y procedimientos almacenados probados y documentados. |
-| **Habilidades Blandas (PEA)** | **Aprendizaje autónomo:** Realiza ejercicios extras de Funciones y Triggers de forma autónoma; pensamiento algorítmico estructurado y depuración metódica mediante trazas (`RAISE NOTICE`). |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Desarrolla funciones y procedimientos almacenados en PL/pgSQL aplicando parámetros avanzados, variables de registro y estructuras de control para encapsular lógica de negocio en el motor de base de datos.** |
+| **Competencia de la Asignatura** | Aplicar herramientas y tecnologías de bases de datos avanzadas para implementar mecanismos de procesamiento y gestión eficiente de la información en aplicaciones de software. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Fase | Tiempo | Componente | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Fase 1** | `00:00 - 00:30` (30 min) | **ACD** | **Fundamentos de Rutinas en PostgreSQL:** `FUNCTION` vs `PROCEDURE`, modos de argumentos (`IN`, `OUT`, `INOUT`, `VARIADIC`) y tipos de retorno (`SCALAR`, `RECORD`, `TABLE`, `SETOF`, `VOID`). |
-| **Fase 2** | `00:30 - 01:00` (30 min) | **ACD** | **Anatomía del Lenguaje `PL/pgSQL`:** Estructura de bloques, variables `RECORD`/`%ROWTYPE`, `SELECT ... INTO` (`STRICT`/`FOUND`), control de flujo (`IF`, `CASE`, `FOR`), `RAISE` y ciclo de vida (`CREATE OR REPLACE`, `DROP`). |
-| **Fase 3** | `01:00 - 01:45` (45 min) | **APECD** | **Práctica Guiada:** Despliegue del esquema FinTech/Cooperativa y creación paso a paso de nuestras primeras funciones escalares y con `SELECT ... INTO`. |
-| **Fase 4** | `01:45 - 03:00` (75 min) | **APECD** | **Taller Experimental (Parte 1):** Desarrollo de funciones con parámetros `OUT`, funciones que retornan tablas (`RETURNS TABLE`), uso de `RECORD` en bucles `FOR` y clasificación de volatilidad. |
-| **Fase 5** | `03:00 - 04:30` (90 min) | **APECD** | **Taller Experimental (Parte 2):** Desarrollo de Procedimientos Almacenados (`CREATE PROCEDURE`) con validaciones de negocio, bloques `EXCEPTION` y control transaccional. |
-| **Fase 6** | `04:30 - 05:00` (30 min) | **APECD** | **Mantenimiento del Ciclo de Vida y Cierre:** Pruebas de modificación (`CREATE OR REPLACE`), eliminación segura (`DROP FUNCTION/PROCEDURE`) y revisión con rúbrica. |
+### 📅 CLASE 9: Lunes 23 de noviembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 9.1** | 40 min | **ACD** | Fundamentos de Rutinas y Diferencias Arquitectónicas: `FUNCTION` vs `PROCEDURE` en PostgreSQL, control transaccional (`COMMIT`/`ROLLBACK` en procedimientos), modos de argumentos (`IN`, `OUT`, `INOUT`, `VARIADIC`) y tipos de retorno (`SCALAR`, `TABLE`, `SETOF`, `VOID`). |
+| **Bloque 9.2** | 40 min | **ACD** | Anatomía del Lenguaje `PL/pgSQL`: Bloques estructurados (`DECLARE ... BEGIN ... EXCEPTION ... END`), variables `RECORD`, `%TYPE`, `%ROWTYPE`, cláusula `SELECT ... INTO` (`STRICT`/`FOUND`), estructuras condicionales y bucles. |
+| **Bloque 9.3** | 40 min | **ACD** | Ejemplos Guiados Paso a Paso: Implementación de función escalar inmutable financiera, función con `RECORD` y `OUT`, función tabular (`RETURNS TABLE`) y procedimiento almacenado de transferencias atómicas. |
+
+### 🔬 CLASE 10: Miércoles 25 de noviembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 10.1** | 50 min | **APECD** | Laboratorio Fase 1: Creación de Funciones Escalares y de Decisión: Desarrollo de función de evaluación de riesgo y cupo crediticio con `SELECT ... INTO` y `CASE`. |
+| **Bloque 10.2** | 80 min | **APECD** | Laboratorio Fase 2: Funciones Tabulares y Procedimientos Almacenados: Generador de tablas de amortización con `RETURNS TABLE`, `FOR` loop y `RETURN NEXT`; función variadic y procedimiento transaccional de dispersión de fondos. |
+| **Bloque 10.3** | 50 min | **APECD** | Laboratorio Fase 3: Pruebas, Modificación (`CREATE OR REPLACE`), Eliminación (`DROP`) y Solucionario: Manejo de sobrecarga de funciones, depuración con `RAISE NOTICE/EXCEPTION`, feedback docente y rúbrica. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual Profundo (ACD - 1 Hora)
+## 📚 4. PARTE I: CLASE 9 (23/11/2026 — 2 Horas / ACD) — Funciones y Procedimientos Almacenados en PL/pgSQL
 
 ### 4.1 ¿Por qué llevar Lógica al Motor de Base de Datos con `PL/pgSQL`?
 
@@ -266,7 +285,7 @@ DROP PROCEDURE IF EXISTS sp_cierre_diario(DATE, INTEGER);
 
 ---
 
-## 💻 5. Ejemplos Guiados Paso a Paso en PostgreSQL / PL/pgSQL
+## 💻 5. CLASE 9: Ejemplos Guiados Paso a Paso en PostgreSQL / PL/pgSQL (ACD — 2 Horas)
 
 Antes de iniciar el taller de 4 horas, construyamos el entorno empresarial de una **Cooperativa de Ahorro y Crédito / FinTech ("CoopYavirac Digital")** y ejecutemos **4 ejemplos guiados progresivos**.
 
@@ -600,7 +619,7 @@ CALL sp_transferir_fondos('400-0001-99', '400-0003-77', 250.00, 'Pago de consult
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD - 4 Horas)
+## 🛠️ 6. PARTE II: CLASE 10 (25/11/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 Trabajando sobre el esquema `coop_yavirac` creado en la sección anterior, desarrolla los siguientes **6 ejercicios progresivos** en tu archivo `semana05_plpgsql_rutinas.sql`.
 
@@ -1056,7 +1075,7 @@ ORDER BY tipo_objeto, nombre_rutina;
 
 ---
 
-## 🚀 7. Actividades de Refuerzo Autónomo
+## 🚀 7. PARTE III: Actividades de Refuerzo, Casos Reales en Producción, Rúbrica y Bibliografía
 
 En cumplimiento de la habilidad blanda del PEA (*"Realiza ejercicios extras de Funciones y Triggers de forma autónoma"*), resuelve los siguientes retos fuera del aula:
 

@@ -1,57 +1,77 @@
 # 🔐 Semana 8: Transacciones, Concurrencia y Seguridad (Roles y Usuarios)
 
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 3:** Transacciones y Seguridad  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
+
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial (PEA) |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre — Periodo Académico `2026-II` |
-| **Modalidad** | Dual |
-| **Unidad Curricular** | **Unidad 3:** Transacciones y Seguridad |
-| **Semana** | Semana 8 de 9 |
-| **Carga Horaria Semanal** | **5 Horas Totales** — Aprendizaje en Contacto con el Docente (**ACD**): `1h` \| Aprendizaje Práctico-Experimental en Contacto con el Docente (**APECD**): `4h` |
-| **Contenidos del PEA** | Transacciones y Seguridad; Roles y Usuarios |
-| **Software y Herramientas** | PostgreSQL 16+, dos terminales simultáneas de `psql` (o dos sesiones independientes en DBeaver / pgAdmin 4) |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 3: Transacciones y Seguridad (ID Unidad: 347554) |
+| **Semana Académica** | Semana 8 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 15 (2 Horas — ACD)** | **Fecha:** Lunes 14 de diciembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Transacciones y Seguridad: Clase magistral sobre transacciones (COMMIT y ROLLBACK), concurrencias y criterios fundamentales de seguridad en bases de datos. |
+| **Clase 16 (3 Horas — APECD)** | **Fecha:** Miércoles 16 de diciembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Gestión de roles y usuarios en base de datos. Análisis e implementación de instrucciones de creación de roles, asignación de privilegios y control de acceso. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Dominar la gestión transaccional (**ACID**, `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`), el control de concurrencia multiversión (**MVCC**, niveles de aislamiento, bloqueos pesimistas y prevención de *deadlocks*) y la arquitectura de seguridad mediante **Roles, Usuarios, privilegios DCL (`GRANT`/`REVOKE`) y Seguridad a Nivel de Fila (RLS)** en PostgreSQL.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 8:**  
+  Administrar transacciones ACID y la seguridad integral en PostgreSQL mediante mecanismos de concurrencia MVCC, gestión granular de roles (RBAC) y políticas de seguridad a nivel de fila (RLS).
+- **Objetivo Específico de la Clase 15 (2 Horas (120 min) — ACD / Aula — Lunes 14 de diciembre de 2026):**  
+  Analizar las propiedades ACID, el modelo de concurrencia MVCC, los niveles de aislamiento y los criterios fundamentales de seguridad relacional en PostgreSQL.
+- **Objetivo Específico de la Clase 16 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 16 de diciembre de 2026):**  
+  Implementar la gestión de roles, usuarios, asignación de privilegios granulares (GRANT/REVOKE) y políticas de seguridad a nivel de fila (RLS) en PostgreSQL en entorno de laboratorio.
 
-| Componente Curricular | Descripción Oficial según el PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 3)** | Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. |
-| **Competencia Específica** | Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información. |
-| **Actividad ACD (1h)** | Clase magistral: Transacciones (`COMMIT` y `ROLLBACK`), Concurrencia, Seguridad en Base de Datos (Criterios de seguridad, Roles y usuarios). |
-| **Actividad APECD (4h)** | Analizar instrucciones de creación de roles y usuarios; laboratorio práctico en consolas paralelas de transaccionalidad, concurrencia y matriz de control de acceso basado en roles (RBAC). |
-| **Evidencia de Aprendizaje** | Describe los conceptos de transaccionalidad y concurrencia; y las instrucciones para crear roles y usuarios. |
-| **Habilidades Blandas** | Ética profesional en el resguardo de datos confidenciales, pensamiento analítico ante escenarios concurrentes y rigor técnico en administración de privilegios. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 3 (PEA):** Brinda asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Describe los conceptos de transaccionalidad y concurrencia y administra roles, privilegios y políticas de seguridad para el control de acceso a la información en PostgreSQL.** |
+| **Competencia de la Asignatura** | Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Duración | Componente | Tema / Actividad |
+### 📅 CLASE 15: Lunes 14 de diciembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
 | :---: | :---: | :---: | :--- |
-| **1** | 20 min | **ACD** | **Transacciones (`COMMIT` y `ROLLBACK`):** Propiedades ACID, estados de una transacción, `BEGIN`, `COMMIT`, `ROLLBACK` y `SAVEPOINT`. |
-| **2** | 20 min | **ACD** | **Concurrencia y MVCC:** Fenómenos de concurrencia, arquitectura MVCC en PostgreSQL, niveles de aislamiento, bloqueos `FOR UPDATE` y *Deadlocks*. |
-| **3** | 20 min | **ACD** | **Seguridad en Bases de Datos:** Tríada CIA, Principio de Menor Privilegio, `ROLE` vs `USER`, DCL (`GRANT`/`REVOKE`), herencia de roles y *Row-Level Security* (RLS). |
-| **4** | 110 min | **APECD** | **Laboratorio Parte 1 (2 Terminales Paralelas):** Simulación experimental de transacciones atómicas, `SAVEPOINT`, niveles de aislamiento, *Lost Update*, bloqueos `FOR UPDATE SKIP LOCKED` y *Deadlocks*. |
-| **5** | 100 min | **APECD** | **Laboratorio Parte 2 (Ingeniería de Seguridad RBAC + RLS):** Implementación y auditoría de una matriz completa de roles empresariales (Administrador, Desarrollador, Cajero/Operador y Auditor). |
-| **6** | 30 min | **APECD** | Verificación de evidencias de aprendizaje, resolución de preguntas y preparación para la evaluación de la Semana 9. |
+| **Bloque 15.1** | 40 min | **ACD** | Transacciones y Propiedades ACID: Atomicidad, Consistencia, Aislamiento y Durabilidad; comandos TCL (`BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`) y máquina de estados transaccional. |
+| **Bloque 15.2** | 40 min | **ACD** | Concurrencia, MVCC y Niveles de Aislamiento: Arquitectura de tuplas múltiples (*xmin*, *xmax*), fenómenos de concurrencia (*Dirty Read*, *Non-Repeatable Read*, *Phantom Read*), niveles `READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE`, bloqueos explícitos y *Deadlocks*. |
+| **Bloque 15.3** | 40 min | **ACD** | Criterios de Seguridad y Ejemplos Guiados: Tríada CIA, `ROLE` vs `USER`, privilegios granulares DCL (`GRANT`/`REVOKE`) y políticas de seguridad a nivel de fila (*Row-Level Security* - RLS). |
+
+### 🔬 CLASE 16: Miércoles 16 de diciembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 16.1** | 60 min | **APECD** | Laboratorio Fase 1: Simulación de Concurrencia en Dos Terminales: Pruebas simultáneas de aislamiento, bloqueo pesimista con `SELECT ... FOR UPDATE`, prevención de *Lost Update* y resolución de bloqueos. |
+| **Bloque 16.2** | 70 min | **APECD** | Laboratorio Fase 2: Implementación de Seguridad RBAC y RLS: Creación de matriz empresarial de roles (administrador, desarrollador, cajero, auditor), herencia de roles, esquemas protegidos y políticas RLS. |
+| **Bloque 16.3** | 50 min | **APECD** | Laboratorio Fase 3: Pruebas de Acceso, Auditoría y Solucionario: Verificación de permisos con `SET ROLE`, suplantación de identidad para pruebas de RLS, feedback docente y rúbrica. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual Profundo (ACD - 1 Hora)
+## 📚 4. PARTE I: CLASE 15 (14/12/2026 — 2 Horas / ACD) — Transacciones, Concurrencia y Criterios de Seguridad
 
 ### 4.1. Transacciones (`COMMIT` y `ROLLBACK`) y Propiedades ACID
 
@@ -226,7 +246,7 @@ CREATE POLICY pol_cajero_sus_propios_movimientos
 
 ---
 
-## 💻 5. Ejemplos Guiados Paso a Paso en PostgreSQL
+## 💻 5. CLASE 15: Ejemplos Guiados Paso a Paso en PostgreSQL (ACD — 2 Horas)
 
 ### 5.1. Creación del Entorno Financiero de Demostración
 
@@ -391,7 +411,7 @@ CREATE POLICY pol_auditor_ver_todo
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD - 4 Horas)
+## 🛠️ 6. PARTE II: CLASE 16 (16/12/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 El taller de 4 horas se divide en **dos laboratorios prácticos**:
 - **Parte A (2 Horas):** Laboratorio de Transacciones, Niveles de Aislamiento y Bloqueos en **Dos Terminales Paralelas** (`Terminal A` y `Terminal B`).
@@ -735,7 +755,7 @@ RESET ROLE;
 
 ---
 
-## 🚀 7. Actividades de Refuerzo Autónomo
+## 🚀 7. PARTE III: Actividades de Refuerzo, Casos Reales en Producción, Rúbrica y Bibliografía
 
 1. **Colas de Trabajo Concurrentes con `FOR UPDATE SKIP LOCKED`:** Crea una tabla `cola_envio_correos (id SERIAL, destinatario TEXT, estado VARCHAR)` con 10 registros pendientes. Abre dos terminales y demuestra cómo ejecutar `SELECT * FROM cola_envio_correos WHERE estado = 'PENDIENTE' ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;` en ambas terminales asigna un correo distinto a cada trabajador sin bloquearse mutuamente.
 2. **Auditoría de Privilegios en el Catálogo del Sistema:** Escribe una consulta sobre `information_schema.role_table_grants` y `pg_roles` que genere un reporte consolidado de todos los usuarios con login, su fecha de expiración (`rolvaliduntil`), límite de conexiones (`rolconnlimit`) y las tablas a las que tienen acceso.

@@ -2,60 +2,76 @@
 
 > **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
 > **Carrera:** Tecnología Superior en Desarrollo de Software  
-> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`)  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
 > **Unidad 1:** Sentencias SQL complejas, vistas e índices  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Parámetro | Detalle Oficial según PEA |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
 | **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
-| **Periodo Académico** | 2026 - II |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
 | **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
-| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices |
-| **Semana** | Semana 1 de 8 |
-| **Carga Horaria Semanal** | **ACD:** 2 horas \| **APECD:** 3 horas \| **APEA:** 0 horas \| **AA:** 0 horas \| **Total:** 5 horas |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices (ID Unidad: 347552) |
+| **Semana Académica** | Semana 1 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 1 (2 Horas — ACD)** | **Fecha:** Lunes 26 de octubre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Sentencias SQL complejas y DDL: Modelamiento de datos, reglas para convertir modelo conceptual en lógico, y explicación de conceptos de tablas catálogo y polimórficas. |
+| **Clase 2 (3 Horas — APECD)** | **Fecha:** Miércoles 28 de octubre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Creación de modelo lógico normalizado en herramienta CASE (PG-Modeler / Lucidchart) e implementación de base de datos con sentencias DDL. |
 | **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
-| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, pgModeler / Lucidchart / Draw.io, Visual Studio Code |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Transformar modelos conceptuales de dominio empresarial en modelos lógicos relacionales normalizados (hasta 3FN/BCNF) e implementarlos físicamente en **PostgreSQL** mediante sentencias **DDL (Data Definition Language)** robustas, integrando patrones arquitectónicos profesionales de **tablas catálogo** y **relaciones polimórficas** con integridad referencial garantizada.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 1:**  
+  Transformar modelos conceptuales de dominio empresarial en modelos lógicos relacionales normalizados (hasta 3FN/BCNF) e implementarlos físicamente en PostgreSQL mediante sentencias DDL robustas, integrando tablas catálogo y asociaciones polimórficas con integridad referencial garantizada.
+- **Objetivo Específico de la Clase 1 (2 Horas (120 min) — ACD / Aula — Lunes 26 de octubre de 2026):**  
+  Analizar las reglas formales de transformación del modelo conceptual al modelo lógico relacional normalizado (hasta 3FN/BCNF) y los patrones arquitectónicos de tablas catálogo y relaciones polimórficas.
+- **Objetivo Específico de la Clase 2 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 28 de octubre de 2026):**  
+  Diseñar modelos lógicos normalizados en herramientas CASE (pgModeler / Lucidchart) e implementar físicamente la base de datos en PostgreSQL mediante sentencias DDL avanzadas, restricciones y arcos exclusivos.
 
-| Componente Curricular | Descripción Oficial PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 1)** | Brinda asistencia técnica en el diseño, modelamiento e ilustración del proceso de base de datos. |
-| **Competencia Específica** | Diseñar y modelar bases de datos aplicando principios de modelamiento y estructuras relacionales para apoyar el desarrollo de soluciones de software. |
-| **Contenidos de la Semana** | • Sentencias SQL complejas (fundamentos estructurales)<br>• Implementar una BD con sentencias DDL<br>• Conceptos de Tablas catálogo y polimórficas |
-| **Actividades ACD (2h)** | Aplicar modelamiento de datos, reglas para convertir modelo conceptual en lógico; explicación de conceptos de tablas catálogo y polimórficas. |
-| **Actividades APECD (3h)** | Dado un modelo conceptual, crear un modelo lógico normalizado en una herramienta (Lucidchart, pgModeler, etc.), para implementar la BD. |
-| **Evidencia de Aprendizaje** | Diagrama de modelo de datos (MER o modelo lógico) elaborado con una herramienta de modelado con su explicación, documento técnico y script SQL DDL. |
-| **Habilidades Blandas** | Pensamiento analítico y sistémico, atención al detalle arquitectónico, comunicación técnica efectiva y trabajo colaborativo. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 1 (PEA):** Brinda asistencia técnica en el diseño, modelamiento e ilustración del proceso de base de datos. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Modela esquemas relacionales normalizados hasta 3FN e implementa la base de datos física en PostgreSQL con sentencias DDL, tablas catálogo y relaciones polimórficas garantizando la consistencia y las restricciones de integridad empresarial.** |
+| **Competencia de la Asignatura** | Diseñar y modelar bases de datos aplicando principios de modelamiento y estructuras relacionales para apoyar el desarrollo de soluciones de software. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Componente | Tiempo | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Bloque 1** | **ACD** | 40 min | **De lo Conceptual a lo Lógico:** Reglas formales de transformación (Entidades fuertes/débiles, cardinalidades 1:1, 1:N, N:M) y revisión práctica de Normalización (1FN, 2FN, 3FN, BCNF). |
-| **Bloque 2** | **ACD** | 40 min | **Arquitectura de Tablas Catálogo y Polimórficas:** Diseño de tablas de referencia (*Lookup Tables*) vs. tipos `ENUM`; patrones de asociaciones polimórficas y arcos exclusivos en PostgreSQL. |
-| **Bloque 3** | **ACD** | 40 min | **DDL Profesional en PostgreSQL:** Esquemas, tipos de datos modernos (`GENERATED ALWAYS AS IDENTITY`, `NUMERIC`, `TIMESTAMPTZ`, `JSONB`), nomenclatura de `CONSTRAINTS` y políticas `ON DELETE / ON UPDATE`. |
-| **Bloque 4** | **APECD** | 60 min | **Taller Fase 1 (Modelado Lógico):** Análisis de caso empresarial y construcción del modelo lógico normalizado en **pgModeler / Lucidchart**. |
-| **Bloque 5** | **APECD** | 90 min | **Taller Fase 2 (Implementación Física DDL):** Codificación del script SQL DDL completo en PostgreSQL, creación de catálogos, resolución de polimorfismo y pruebas de violación de restricciones. |
-| **Bloque 6** | **APECD** | 30 min | **Revisión de Evidencias y Retroalimentación:** Validación del diagrama lógico, documentación técnica de restricciones y cierre formativo. |
+### 📅 CLASE 1: Lunes 26 de octubre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 1.1** | 40 min | **ACD** | De lo Conceptual a lo Lógico: Reglas formales de transformación (Entidades fuertes/débiles, cardinalidades 1:1, 1:N, N:M) y normalización relacional (1FN, 2FN, 3FN, BCNF). |
+| **Bloque 1.2** | 40 min | **ACD** | Arquitectura de Tablas Catálogo y Polimórficas: Diseño de tablas paramétricas (*Lookup Tables*) vs. tipos `ENUM`; patrones de asociaciones polimórficas y arcos exclusivos con `CHECK (num_nonnulls(...) = 1)`. |
+| **Bloque 1.3** | 40 min | **ACD** | DDL Profesional y Ejemplos Guiados en PostgreSQL: Esquemas, tipos de datos modernos (`IDENTITY`, `NUMERIC`, `TIMESTAMPTZ`, `JSONB`), restricciones y políticas `ON DELETE / ON UPDATE`. |
+
+### 🔬 CLASE 2: Miércoles 28 de octubre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 2.1** | 50 min | **APECD** | Taller Fase 1 (Modelado Lógico CASE): Análisis de requerimientos del caso empresarial *KunturGo* y diseño del modelo lógico normalizado en **pgModeler / Lucidchart**. |
+| **Bloque 2.2** | 90 min | **APECD** | Taller Fase 2 (Implementación DDL en PostgreSQL): Codificación del script SQL DDL completo en pgAdmin/psql, creación de catálogos, resolución de polimorfismo y pruebas de violación de restricciones. |
+| **Bloque 2.3** | 40 min | **APECD** | Revisión Técnica, Verificación de Restricciones y Solucionario: Pruebas DML de estrés, validación del modelo generado, feedback docente y cierre formativo. |
 
 ---
 
-## 🧠 4. Desarrollo Teórico-Conceptual Profundo
+## 🧠 4. PARTE I: CLASE 1 (26/10/2026 — 2 Horas / ACD) — Desarrollo Teórico-Conceptual Profundo
 
 ### 4.1. Niveles de Abstracción y Reglas de Transformación del Modelo Conceptual al Lógico
 
@@ -231,7 +247,7 @@ Al escribir un script DDL de nivel de producción en PostgreSQL, debemos aplicar
 
 ---
 
-## 💻 5. Ejemplo Guiado Paso a Paso en PostgreSQL
+## 💻 5. CLASE 1: Ejemplos Guiados Paso a Paso en PostgreSQL (ACD — 2 Horas)
 
 ### Caso de Estudio Guiado: Sistema de Gestión de Atractivos y Servicios Patrimoniales
 Diseñaremos e implementaremos un esquema completo en PostgreSQL que incluye:
@@ -496,7 +512,7 @@ LEFT JOIN operadores_turisticos o ON i.operador_id = o.operador_id;
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD — 3 Horas)
+## 🛠️ 6. PARTE II: CLASE 2 (28/10/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario Empresarial Realista: Plataforma "KunturGo — Ecosistema de Reservas Turísticas y Culturales"
 
@@ -886,7 +902,7 @@ ORDER BY r.resena_id;
 
 ---
 
-## 🚀 7. Actividades de Refuerzo y Preparación para la Evidencia (RdA 1)
+## 🚀 7. PARTE III: Actividades Autónomas, Benchmarks Reales, Rúbrica y Bibliografía
 
 Aunque la Semana 1 concentra sus 5 horas en trabajo presencial y experimental con el docente (2h ACD + 3h APECD), para consolidar la **Evidencia de Aprendizaje del RdA 1** (*Diagrama de modelo de datos elaborado con una herramienta de modelado con su explicación, documento técnico y script SQL DDL*), te recomendamos verificar el siguiente **Checklist de Calidad Arquitectónica**:
 

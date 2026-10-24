@@ -1,58 +1,77 @@
-# ⚡ Semana 06: Fundamentos, Arquitectura y Creación de Triggers (Disparadores) en PostgreSQL
+# ⚡ Semana 6: Fundamentos, Arquitectura y Creación de Triggers (Disparadores) en PostgreSQL
+
+> **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
+> **Carrera:** Tecnología Superior en Desarrollo de Software  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Unidad 2:** Generación de procedimientos, funciones y triggers  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Portada y Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Campo | Detalle Oficial |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Carrera** | Tecnología Superior en Desarrollo de Software |
-| **Asignatura** | Base de Datos Avanzada |
-| **Código de Asignatura** | `DS4AC1-215` |
-| **Semestre / Periodo** | Segundo Semestre / 2026-II |
-| **Modalidad** | Dual |
-| **Unidad Didáctica** | Unidad 2: Generación de procedimientos, funciones y triggers |
-| **Semana** | Semana 06 de 16 |
-| **Carga Horaria Semanal** | **ACD:** 1 hora \| **APECD:** 4 horas \| **Total:** 5 horas |
-| **Contenidos (PEA)** | Generación de Trigger; Crea, invoca y elimina Trigger (`BEFORE`, `AFTER`, `INSTEAD OF`, `FOR EACH ROW/STATEMENT`, `NEW`, `OLD`, `TG_OP`) |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers. |
-| **Software y Herramientas** | PostgreSQL 16+, pgAdmin 4 / DBeaver, Extensión `plpgsql`, Git |
+| **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
+| **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 2: Generación de procedimientos, funciones y triggers (ID Unidad: 347553) |
+| **Semana Académica** | Semana 6 de 9 |
+| **Carga Horaria Semanal** | **5 Horas Presenciales** (ACD: 2h | APECD: 3h | APEA: 0h | AA: 0h) |
+| **Clase 11 (2 Horas — ACD)** | **Fecha:** Lunes 30 de noviembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** Generación de Triggers: Análisis de componentes de un trigger (evento, momento BEFORE/AFTER), tipos de triggers y estructura de funciones trigger. |
+| **Clase 12 (3 Horas — APECD)** | **Fecha:** Miércoles 02 de diciembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Creación, invocación, prueba y eliminación de triggers para auditoría y validación automática de datos en tablas. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos de Aprendizaje, Competencias, Evidencias y Habilidades Blandas
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### 2.1 Objetivos de la Sesión
-1. **Comprender la arquitectura de dos capas de los Triggers en PostgreSQL**, distinguiendo la creación de la **Función de Trigger (`RETURNS TRIGGER`)** de la vinculación del **Disparador (`CREATE TRIGGER`)** sobre una tabla o vista.
-2. **Dominar la matriz de eventos (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`), tiempos (`BEFORE`, `AFTER`, `INSTEAD OF`) y niveles (`FOR EACH ROW`, `FOR EACH STATEMENT`)**, así como el uso de los registros especiales `NEW`, `OLD` y metadatos `TG_*`.
-3. **Implementar, invocar, depurar y administrar el ciclo de vida** de triggers de normalización, validación compleja de reglas de negocio, integridad polimórfica y auditoría automática en un taller práctico de 4 horas.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### 2.2 Matriz de Competencias y Evidencias
+- **Objetivo General de la Semana 6:**  
+  Comprender e implementar disparadores (*triggers*) en PostgreSQL mediante funciones disparadoras que intercepten eventos DML para la validación proactiva y auditoría de datos.
+- **Objetivo Específico de la Clase 11 (2 Horas (120 min) — ACD / Aula — Lunes 30 de noviembre de 2026):**  
+  Analizar los componentes estructurales de los disparadores en PostgreSQL, incluyendo eventos DML, momentos de disparo (BEFORE, AFTER, INSTEAD OF), granularidad de filas/sentencias y variables de contexto (NEW, OLD, TG_*).
+- **Objetivo Específico de la Clase 12 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 02 de diciembre de 2026):**  
+  Crear, invocar, probar y eliminar triggers en PostgreSQL para la validación de reglas de negocio y el registro automatizado de auditorías en tablas transaccionales.
 
-| Componente | Descripción Aplicada a la Semana 06 |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultado de Aprendizaje (RdA 2)** | Desarrollo de procedimientos almacenados, funciones o triggers que garanticen la integridad activa y la trazabilidad automática de los datos. |
-| **Competencia Específica** | Diseña triggers `BEFORE` para higienizar y validar registros (`NEW`/`OLD`) y triggers `AFTER` para mantener bitácoras de auditoría (`JSONB`) y sincronizar tablas resumen. |
-| **Evidencia de Aprendizaje** | Script `semana06_triggers_fundamentos.sql` con funciones disparadoras, triggers asociados y suite de pruebas de invocación (`INSERT`, `UPDATE`, `DELETE`) documentada. |
-| **Habilidades Blandas (PEA)** | **Aprendizaje autónomo:** Realiza ejercicios extras de Funciones y Triggers de forma autónoma; pensamiento sistémico orientando a eventos y prevención de efectos secundarios (recursión infinita). |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Construye e implementa disparadores y funciones trigger en PostgreSQL que garantizan la integridad activa de los datos y ejecutan auditorías automáticas ante operaciones DML.** |
+| **Competencia de la Asignatura** | Aplicar herramientas y tecnologías de bases de datos avanzadas para implementar mecanismos de procesamiento y gestión eficiente de la información en aplicaciones de software. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Sesión (5 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Fase | Tiempo | Componente | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Fase 1** | `00:00 - 00:30` (30 min) | **ACD** | **Arquitectura de Triggers en PostgreSQL:** El modelo de 2 pasos (`FUNCTION RETURNS TRIGGER` + `CREATE TRIGGER`), eventos (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`) y tiempos (`BEFORE`, `AFTER`, `INSTEAD OF`). |
-| **Fase 2** | `00:30 - 01:00` (30 min) | **ACD** | **Registros `NEW`/`OLD`, Variables `TG_*` y Ciclo de Vida:** Diferencia entre retornar `NEW`, `OLD` o `NULL`, cláusula `WHEN (...)`, `ENABLE/DISABLE` y `DROP TRIGGER`. |
-| **Fase 3** | `01:00 - 01:45` (45 min) | **APECD** | **Práctica Guiada:** Despliegue del esquema Logístico/Inventario y creación de nuestros primeros triggers `BEFORE INSERT/UPDATE` y `AFTER`. |
-| **Fase 4** | `01:45 - 03:00` (75 min) | **APECD** | **Taller Experimental (Parte 1):** Triggers de normalización automática, validación de reglas de negocio complejas y validación de integridad en tablas polimórficas. |
-| **Fase 5** | `03:00 - 04:30` (90 min) | **APECD** | **Taller Experimental (Parte 2):** Triggers `AFTER` para control automático de Kardex/Stock, bitácoras de auditoría multi-evento (`TG_OP`) y triggers `INSTEAD OF` sobre vistas. |
-| **Fase 6** | `04:30 - 05:00` (30 min) | **APECD** | **Administración y Pruebas de Invocación:** Pruebas exhaustivas de disparo e inspección del catálogo `pg_trigger` / `information_schema.triggers`. |
+### 📅 CLASE 11: Lunes 30 de noviembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 11.1** | 40 min | **ACD** | Arquitectura en 2 Pasos y Clasificación: Separación de la función trigger (`RETURNS TRIGGER`) y la sentencia `CREATE TRIGGER`; eventos (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`), momentos (`BEFORE`, `AFTER`, `INSTEAD OF`) y granularidad (`FOR EACH ROW` vs `FOR EACH STATEMENT`). |
+| **Bloque 11.2** | 40 min | **ACD** | Variables Especiales y Cláusula `WHEN`: Registros `NEW` y `OLD`, variables de metadatos `TG_OP`, `TG_TABLE_NAME`, `TG_WHEN`, `TG_LEVEL`; optimización con `WHEN (condición)` y `UPDATE OF columnas`. |
+| **Bloque 11.3** | 40 min | **ACD** | Ciclo de Vida y Ejemplos Guiados: Validación `BEFORE`, sincronización de stock con Kardex `AFTER INSERT` y auditoría forense multi-tabla en `JSONB`. |
+
+### 🔬 CLASE 12: Miércoles 02 de diciembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 12.1** | 50 min | **APECD** | Laboratorio Fase 1: Triggers de Validación y Cálculo: Trigger `BEFORE INSERT OR UPDATE` para cálculo automático de subtotales y toma de precio oficial de lista. |
+| **Bloque 12.2** | 80 min | **APECD** | Laboratorio Fase 2: Triggers de Auditoría y Protección: Trigger `AFTER` para totalizar pedidos, trigger `BEFORE DELETE` para proteger pedidos confirmados y trigger polimórfico de integridad. |
+| **Bloque 12.3** | 50 min | **APECD** | Laboratorio Fase 3: Triggers sobre Vistas (`INSTEAD OF`), Administración y Solucionario: Creación de trigger `INSTEAD OF INSERT`, inspección en catálogo, desactivación (`DISABLE TRIGGER`), eliminación (`DROP TRIGGER`), feedback docente y rúbrica. |
 
 ---
 
-## 📚 4. Desarrollo Teórico-Conceptual Profundo (ACD - 1 Hora)
+## 📚 4. PARTE I: CLASE 11 (30/11/2026 — 2 Horas / ACD) — Generación y Arquitectura de Triggers en PostgreSQL
 
 ### 4.1 ¿Qué es un Trigger y por qué PostgreSQL utiliza una Arquitectura de 2 Pasos?
 
@@ -197,7 +216,7 @@ Si una tabla `productos` recibe 10,000 `UPDATE` por minuto que solo actualizan u
 
 ---
 
-## 💻 5. Ejemplos Guiados Paso a Paso en PostgreSQL / PL/pgSQL
+## 💻 5. CLASE 11: Ejemplos Guiados Paso a Paso en PostgreSQL / PL/pgSQL (ACD — 2 Horas)
 
 Construyamos un sistema empresarial de **Comercio Electrónico, Inventario y Auditoría Patrimonial ("Yavirac Market & Logistics")** para demostrar cómo crear, invocar y verificar cada tipo de trigger.
 
@@ -469,7 +488,7 @@ ORDER BY auditoria_id DESC;
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD - 4 Horas)
+## 🛠️ 6. PARTE II: CLASE 12 (02/12/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 Sobre el esquema `yavirac_logistics` desplegado en la sección 5.1, resuelve los siguientes **6 ejercicios prácticos de ingeniería de triggers** en tu archivo `semana06_triggers_fundamentos.sql`. Para cada ejercicio debes escribir:
 1. La función disparadora (`CREATE OR REPLACE FUNCTION ... RETURNS TRIGGER`).
@@ -819,7 +838,7 @@ DROP FUNCTION IF EXISTS fn_trg_impedir_truncate();
 
 ---
 
-## 🚀 7. Actividades de Refuerzo Autónomo
+## 🚀 7. PARTE III: Actividades de Refuerzo, Casos Reales en Producción, Rúbrica y Bibliografía
 
 Alineados a la habilidad blanda del PEA (*"Realiza ejercicios extras de Funciones y Triggers de forma autónoma"*), desarrolla los siguientes desafíos complementarios:
 

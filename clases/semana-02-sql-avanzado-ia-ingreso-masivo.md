@@ -2,63 +2,76 @@
 
 > **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
 > **Carrera:** Tecnología Superior en Desarrollo de Software  
-> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`)  
+> **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
+> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
 > **Unidad 1:** Sentencias SQL complejas, vistas e índices  
+> **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 ---
 
-## 📋 1. Ficha Técnica de la Sesión
+## 📋 1. Ficha Técnica de la Sesión y Planificación Curricular
 
-| Parámetro | Detalle Oficial según PEA |
+| Parámetro | Detalle Oficial según PEA y Planificación de Unidades (Paralelo D) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
 | **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
-| **Periodo Académico** | 2026 - II |
+| **Periodo Académico** | 2026-II |
+| **Docente** | Ing. Yoli Moya, MSc. |
 | **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
-| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices |
-| **Semana** | Semana 2 de 8 |
-| **Carga Horaria Semanal** | **ACD:** 2h \| **APECD:** 3h \| **APEA:** 1h \| **AA:** 2h \| **Total:** 8 horas |
-| **Prerrequisitos** | Semana 1 (Modelado Lógico, DDL, Tablas Catálogo y Polimórficas) |
-| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, Visual Studio Code + Extensiones SQLTools / PostgreSQL + Asistente IA (GitHub Copilot / Continue) |
+| **Paralelo** | Paralelo D |
+| **Unidad Curricular** | Unidad 1: Sentencias SQL complejas, vistas e índices (ID Unidad: 347552) |
+| **Semana Académica** | Semana 2 de 9 |
+| **Carga Horaria Semanal** | **8 Horas Semanales** (ACD: 2h | APECD: 3h | APEA: 1h | AA: 2h) |
+| **Clase 3 (2 Horas — ACD)** | **Fecha:** Lunes 02 de noviembre de 2026 \| **Tipo:** Aula (ACD - Presencial Teórico-Práctico) \| **Contenido:** SQL avanzado: Consultas complejas con operadores relacionales y lógicos, funciones escalares (numéricas, texto, fecha), cruce de tablas, JOINs, alias y DISTINCT asistidos por IA. |
+| **Clase 4 (3 Horas — APECD)** | **Fecha:** Miércoles 04 de noviembre de 2026 \| **Tipo:** Laboratorio (APECD - Práctico-Experimental) \| **Contenido:** Laboratorio práctico: Implementación de consultas SQL avanzadas con funciones de agregación, GROUP BY, HAVING, subconsultas y práctica de ingreso masivo de datos. |
+| **Prerrequisitos** | Fundamentos de Bases de Datos, Modelo Entidad-Relación (MER), Álgebra Relacional básica |
+| **Entorno Tecnológico** | PostgreSQL 16+, pgAdmin 4, psql, DBeaver, Visual Studio Code |
 
 ---
 
-## 🎯 2. Objetivos, Resultados de Aprendizaje y Competencias
+## 🎯 2. Objetivos de las Clases, Resultados de Aprendizaje y Competencias
 
-### Objetivo General de la Sesión
-Construir consultas analíticas y transaccionales de alta complejidad en **PostgreSQL** combinando múltiples tablas (`JOIN`), funciones escalares nativas, agregaciones avanzadas (`GROUP BY`, `HAVING`, `FILTER`), subconsultas correlacionadas y expresiones de tabla comunes (`CTE / WITH`), integrando técnicas de **ingreso masivo de datos (`generate_series`, `COPY`)** y **asistentes de Inteligencia Artificial en Visual Studio Code** bajo criterios de auditoría técnica.
+### 2.1. Objetivos de las Clases (Redactados con Verbo en Infinitivo)
 
-### Alineación con el Programa de Estudio de la Asignatura (PEA)
+- **Objetivo General de la Semana 2:**  
+  Dominar la formulación de consultas complejas avanzadas en PostgreSQL, aplicando operadores relacionales, lógicos, funciones escalares, JOINs, agregaciones, subconsultas, técnicas de ingesta masiva y asistencia de IA en el entorno de desarrollo.
+- **Objetivo Específico de la Clase 3 (2 Horas (120 min) — ACD / Aula — Lunes 02 de noviembre de 2026):**  
+  Construir consultas complejas utilizando operadores relacionales, lógicos, funciones escalares nativas, cruces de tablas con JOINs y alias en PostgreSQL, integrando asistentes de inteligencia artificial en el editor de código.
+- **Objetivo Específico de la Clase 4 (3 Horas (180 min) — APECD / Laboratorio — Miércoles 04 de noviembre de 2026):**  
+  Implementar consultas analíticas avanzadas con funciones de agregación, agrupamiento con GROUP BY y HAVING, subconsultas correlacionadas y técnicas de ingesta masiva de registros en PostgreSQL.
 
-| Componente Curricular | Descripción Oficial PEA |
+### 2.2. Resultados de Aprendizaje (RdA) y Competencias
+> [!IMPORTANT]
+> **Norma Pedagógica de Redacción:** Los Resultados de Aprendizaje describen lo que el estudiante demuestra al finalizar la clase; se redactan en **tercera persona del presente de indicativo** (NUNCA en infinitivo terminado en *-ar*, *-er*, *-ir*).
+
+| Componente Curricular | Redacción Oficial (Sin Verbos en Infinitivo) |
 | :--- | :--- |
-| **Resultados de Aprendizaje (RdA 2 y RdA 4)** | • **RdA 2:** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software.<br>• **RdA 4:** Realiza procesos de análisis y verificación de consistencia de datos extraídos de diversas fuentes, que permitan generar reportes relevantes para una organización. |
-| **Competencias Específicas** | • Implementar sentencias SQL avanzadas para extracción y transformación de datos.<br>• Gestionar volúmenes masivos de información y auditar consultas generadas mediante herramientas de IA. |
-| **Contenidos de la Semana** | • Implementar SQL avanzado (Consultas multitabla, funciones escalares y de agregación, subconsultas, CTEs, carga masiva y generación asistida por IA). |
-| **Actividades ACD (2h)** | Comprender los contenidos: SQL de consulta avanzado (cruce tablas, `JOIN`, alias, `DISTINCT`, funciones de agregación, `GROUP BY`, `HAVING`, cálculos, subconsultas). Ejecutar las instrucciones, utilizando la extensión de IA en el editor de código. |
-| **Actividades APECD (3h)** | Revisar SQL básico (operadores relacionales, lógicos). El estudiante investiga funciones escalares (numéricos, texto, fecha). Aplicar consultas completas. |
-| **Actividades APEA (1h)** | Ingreso masivo de datos a BD (`COPY`, `\copy`, `INSERT` multi-fila y síntesis con `generate_series`). |
-| **Actividades AA (2h)** | Instalar extensión en el editor de código (Visual Studio Code) para uso de funciones de IA, para generar consultas SQL (Postgres) a partir de lenguaje natural. |
-| **Evidencia de Aprendizaje** | Script SQL de consultas avanzadas verificadas, dataset masivo cargado en PostgreSQL e informe práctico de generación y validación de consultas SQL con IA en VS Code. |
-| **Habilidades Blandas** | Pensamiento crítico frente a salidas de IA, resolución de problemas complejos, rigor analítico y aprendizaje autónomo. |
+| **Resultados de Aprendizaje Institucionales (PEA)** | **RdA 2 (PEA):** Utiliza herramientas y tecnologías de programación para llevar a cabo tareas específicas en el campo de desarrollo de software.<br>**RdA 4 (PEA):** Realiza procesos de análisis y verificación de consistencia de datos extraídos de diversas fuentes, que permitan generar reportes relevantes para una organización. |
+| **Resultado de Aprendizaje Específico de la Semana** | **Ejecuta consultas analíticas avanzadas sobre múltiples tablas, valida consistencia de datos mediante agrupamiento y subconsultas, y utiliza herramientas de inteligencia artificial para la generación y optimización de código SQL en PostgreSQL.** |
+| **Competencia de la Asignatura** | Analizar y validar datos provenientes de distintas fuentes utilizando consultas analíticas y mecanismos de verificación de consistencia para generar información útil para la toma de decisiones. |
+| **Habilidades Blandas Priorizadas (PEA)** | • **Trabajo en equipo:** Realiza trabajos de investigación grupales y prácticas colaborativas.<br>• **Pensamiento crítico:** Utiliza herramientas específicas para el diseño y optimización de bases de datos.<br>• **Gestión del tiempo:** Realiza las prácticas en laboratorio dentro del horario establecido.<br>• **Comunicación técnica efectiva:** Expone y sustenta con claridad decisiones de arquitectura relacional. |
 
 ---
 
-## ⏱️ 3. Agenda Detallada de la Semana (8 Horas)
+## ⏱️ 3. Agenda Detallada y Cronograma Semanal (5 Horas)
 
-| Bloque | Componente | Tiempo | Actividad Pedagógica |
-| :--- | :---: | :---: | :--- |
-| **Bloque 1** | **ACD** | 40 min | **Orden Lógico de Ejecución SQL y Cruce de Tablas (`JOIN`):** Álgebra relacional aplicada a `INNER`, `LEFT`, `RIGHT`, `FULL OUTER`, `CROSS`, `SELF JOIN` y `LATERAL`. Uso de alias y `DISTINCT` / `DISTINCT ON`. |
-| **Bloque 2** | **ACD** | 40 min | **Agregaciones, Cálculos y Subconsultas:** Funciones `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, cláusula `FILTER (WHERE ...)`, `GROUP BY`, `HAVING`, subconsultas escalares, correlacionadas (`EXISTS` vs `IN`) y `CTEs (WITH)`. |
-| **Bloque 3** | **ACD** | 40 min | **Demostración en Vivo con IA en VS Code:** Ejecución de consultas complejas asistidas por IA en el editor de código y detección de errores comunes generados por LLMs. |
-| **Bloque 4** | **APECD** | 45 min | **Nivelación de SQL Básico e Investigación de Funciones Escalares:** Operadores lógicos/relacionales (`BETWEEN`, `ILIKE`, `IS DISTINCT FROM`) e investigación práctica de funciones numéricas, de texto y de fecha/hora en PostgreSQL. |
-| **Bloque 5** | **APECD** | 135 min | **Taller Práctico de Consultas Completas:** Resolución de 8 requerimientos de inteligencia de negocios y reportería sobre un esquema empresarial. |
-| **Bloque 6** | **APEA** | 60 min | **Práctica Autónoma de Ingreso Masivo de Datos:** Carga de decenas de miles de registros con `generate_series()`, `INSERT` multi-tupla y comandos `COPY` / `\copy` desde CSV. |
-| **Bloque 7** | **AA** | 120 min | **Trabajo Autónomo — Entorno VS Code + IA para PostgreSQL:** Instalación de extensiones, ingeniería de prompts con contexto DDL (`Prompt Engineering for SQL`) y bitácora de validación. |
+### 📅 CLASE 3: Lunes 02 de noviembre de 2026 (2 Horas (120 min)) — ACD (Aula / Teoría Magistral y Ejemplos Guiados)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 3.1** | 40 min | **ACD** | Orden de Ejecución Lógico vs. Léxico y Operadores: Evaluación en SQL (`FROM` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `SELECT`), operadores relacionales, lógicos, `BETWEEN`, `LIKE`, `IN`, `IS NULL` y `ORDER BY`. |
+| **Bloque 3.2** | 40 min | **ACD** | Cruce de Tablas (`JOIN`), Alias, `DISTINCT` y Funciones Escalares: `INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS JOIN`, alias de tablas/columnas, `DISTINCT ON` y catálogo de funciones escalares (numéricas, texto, fecha). |
+| **Bloque 3.3** | 40 min | **ACD** | Consultas Asistidas por IA en VS Code y Ejemplos Guiados: Configuración de prompts de Text-to-SQL y modelado de consultas analíticas sobre el esquema *AndesMarket B2B*. |
+
+### 🔬 CLASE 4: Miércoles 04 de noviembre de 2026 (3 Horas (180 min)) — APECD (Laboratorio de Cómputo / Taller Práctico y Solucionario)
+| Bloque | Tiempo | Componente | Actividad Pedagógica y Contenido |
+| :---: | :---: | :---: | :--- |
+| **Bloque 4.1** | 45 min | **APECD** | Laboratorio Fase 1: Agregaciones, Agrupamiento y Filtros de Grupo: Uso de `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, cláusula `GROUP BY`, `HAVING` y filtrado condicional `FILTER (WHERE ...)`. |
+| **Bloque 4.2** | 75 min | **APECD** | Laboratorio Fase 2: Subconsultas y Expresiones de Tabla Comunes (`CTE` / `WITH`): Subconsultas escalares, subconsultas con `IN`/`EXISTS` y CTEs múltiples para reportería ejecutiva. |
+| **Bloque 4.3** | 60 min | **APECD** | Laboratorio Fase 3: Práctica de Ingreso Masivo de Datos y Solucionario: Uso de `COPY`, `\copy` y generadores procedimentales masivos (`generate_series`), feedback docente y rúbrica. |
 
 ---
 
-## 🧠 4. Desarrollo Teórico-Conceptual Profundo
+## 🧠 4. PARTE I: CLASE 3 (02/11/2026 — 2 Horas / ACD) — Desarrollo Teórico-Conceptual Profundo
 
 ### 4.1. El Orden Léxico vs. el Orden Lógico de Ejecución de una Consulta SQL
 
@@ -230,7 +243,7 @@ ORDER BY v.total_vendido DESC;
 
 ---
 
-## 💻 5. Ejemplo Guiado Paso a Paso en PostgreSQL
+## 💻 5. CLASE 3: Ejemplos Guiados Paso a Paso en PostgreSQL (ACD — 2 Horas)
 
 ### Escenario del Ejemplo Guiado: Analítica Comercial "AndesMarket B2B"
 Ejecuta el siguiente script completo en tu motor PostgreSQL para crear el entorno de demostración y analizar 5 consultas avanzadas progresivas:
@@ -390,7 +403,7 @@ ORDER BY facturacion_neta_usd DESC;
 
 ---
 
-## 🛠️ 6. Taller Práctico-Experimental en Contacto con el Docente (APECD — 3 Horas)
+## 🛠️ 6. PARTE II: CLASE 4 (04/11/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario Empresarial: Auditoría y Reportería Gerencial en "AndesMarket B2B"
 
@@ -630,7 +643,7 @@ ORDER BY ventas_netas_usd DESC;
 
 ---
 
-## 📦 7. Aprendizaje Práctico-Experimental Autónomo (APEA — 1 Hora): Ingreso Masivo de Datos en PostgreSQL
+## 📦 7. PARTE III: Aprendizaje Práctico-Experimental Autónomo (APEA — 1 Hora) e IA (AA — 2 Horas)
 
 En el entorno real de desarrollo de software (y para preparar las pruebas de rendimiento con índices de la **Semana 3**), insertar registros uno por uno es inviable. En esta hora de **APEA** dominarás las **3 técnicas profesionales de carga masiva en PostgreSQL**.
 
