@@ -358,7 +358,7 @@ WHERE codigo_autorizacion = 'AUTH-2026-0085432';
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Vistas Estándar y Vistas Materializadas en PostgreSQL: Arquitectura y Optimización](https://www.youtube.com/results?search_query=postgresql+vistas+materializadas+systemguards)**  
+> 🎬 **[Vistas y Vistas Materializadas en PostgreSQL con REFRESH](https://www.youtube.com/watch?v=9CxEgOEVJt8)**  
 > **Canal / Autor:** El Laboratorio de Rafa / SystemGuards • **Duración estimada:** ~26 min • **Idioma:** Español  
 > **Temas clave explicados:** Abstracción de datos mediante vistas complejas, diferencias con vistas materializadas, refresco concurrente de datos (REFRESH MATERIALIZED VIEW CONCURRENTLY) e introducción al almacenamiento físico.
 
@@ -659,7 +659,7 @@ DROP INDEX IF EXISTS idx_temporal_redundante;
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Índices en PostgreSQL y Análisis de Rendimiento con EXPLAIN ANALYZE](https://www.youtube.com/results?search_query=postgresql+explain+analyze+indices+systemguards)**  
+> 🎬 **[Optimización de Consultas, Índices B-Tree y EXPLAIN ANALYZE](https://www.youtube.com/watch?v=scA1Mahdgvw)**  
 > **Canal / Autor:** SystemGuards / Mauro Bernal • **Duración estimada:** ~34 min • **Idioma:** Español  
 > **Temas clave explicados:** Estructura de índices B-Tree, índices compuestos y parciales, lectura técnica de planes de ejecución en PostgreSQL y comparativa de tiempos de respuesta con y sin índice.
 

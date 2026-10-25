@@ -623,7 +623,7 @@ CALL sp_transferir_fondos('400-0001-99', '400-0003-77', 250.00, 'Pago de consult
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Programación en el Servidor con PL/pgSQL: Sintaxis, Bloques y Funciones en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+plpgsql+funciones+jesus+conde)**  
+> 🎬 **[Curso PostgreSQL: Programación con PL/pgSQL y Funciones](https://www.youtube.com/watch?v=_ccMbzh9Ji0)**  
 > **Canal / Autor:** Jesús Conde / Universidad de Costa Rica • **Duración estimada:** ~30 min • **Idioma:** Español  
 > **Temas clave explicados:** Estructura de bloques en PL/pgSQL, declaración de variables, modos de argumentos (IN, OUT, INOUT, VARIADIC), variables RECORD y uso de cláusula SELECT ... INTO.
 
@@ -1089,7 +1089,7 @@ ORDER BY tipo_objeto, nombre_rutina;
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Procedimientos Almacenados (STORED PROCEDURES) y Retornos Tabulares en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+stored+procedures+create+procedure+call)**  
+> 🎬 **[Procedimientos Almacenados (STORED PROCEDURES) en PostgreSQL](https://www.youtube.com/watch?v=ZJz-8IPP0ks)**  
 > **Canal / Autor:** PicaCódigo / El Laboratorio de Rafa • **Duración estimada:** ~35 min • **Idioma:** Español  
 > **Temas clave explicados:** Diferencias clave entre FUNCTION y PROCEDURE, llamadas con CALL, transaccionalidad autónoma (COMMIT y ROLLBACK) y generación de tablas de amortización con RETURNS TABLE y RETURN NEXT.
 

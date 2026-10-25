@@ -306,7 +306,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ingresos_mensuales;
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Clínica de Errores Comunes y Preguntas Frecuentes en Consultas SQL y PostgreSQL](https://www.youtube.com/results?search_query=errores+comunes+sql+consultas+bettatech)**  
+> 🎬 **[Los Errores más Comunes al Escribir Consultas SQL](https://www.youtube.com/watch?v=TP9gg2vICGM)**  
 > **Canal / Autor:** BettaTech / TodoCode • **Duración estimada:** ~22 min • **Idioma:** Español  
 > **Temas clave explicados:** Resolución de errores típicos en exámenes: trampa de nulos con NOT IN, funciones aplicadas a columnas indexadas (expresiones no SARGables) y optimización de consultas complejas.
 
@@ -953,7 +953,7 @@ WHERE entidad_tipo = 'HOTEL'
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Simulacro y Metodología de Resolución de Examen Práctico de Laboratorio en PostgreSQL](https://www.youtube.com/results?search_query=resolucion+examen+practico+postgresql+laboratorio)**  
+> 🎬 **[Resolución Práctica de Examen y Ejercicios de Base de Datos](https://www.youtube.com/watch?v=5fxcSskfgxE)**  
 > **Canal / Autor:** La Geekipedia de Ernesto / PicaCódigo • **Duración estimada:** ~40 min • **Idioma:** Español  
 > **Temas clave explicados:** Guía práctica de resolución de un caso empresarial integral de evaluación: modelado DDL, consultas analíticas, vistas e indexación bajo tiempo cronometrado.
 

@@ -193,7 +193,7 @@ Durante la sesión de contacto con el docente resolvemos las **8 dudas críticas
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Repaso y Síntesis Avanzada de Programación, Transacciones y Seguridad en PostgreSQL](https://www.youtube.com/results?search_query=repaso+final+bases+de+datos+avanzadas+postgresql)**  
+> 🎬 **[PostgreSQL y Buenas Prácticas de Arquitectura de Bases de Datos](https://www.youtube.com/watch?v=cHGaDfzJyY4)**  
 > **Canal / Autor:** Fazt Code / TodoCode • **Duración estimada:** ~30 min • **Idioma:** Español  
 > **Temas clave explicados:** Síntesis ejecutiva de las Unidades 2 y 3, clínica de dudas de PL/pgSQL, transacciones concurrentes, seguridad RBAC/RLS y criterios de evaluación del Proyecto Integrador (PIS).
 
@@ -856,7 +856,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA andesmed TO rol_farmaceutico;
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Metodología de Resolución de Evaluación Práctica Integral de Bases de Datos en PostgreSQL](https://www.youtube.com/results?search_query=evaluacion+final+laboratorio+postgresql+examen)**  
+> 🎬 **[Cómo Defender y Presentar un Proyecto de Software y Base de Datos](https://www.youtube.com/watch?v=b8BSf5SV7to)**  
 > **Canal / Autor:** La Geekipedia de Ernesto / PicaCódigo • **Duración estimada:** ~40 min • **Idioma:** Español  
 > **Temas clave explicados:** Guía técnica para la resolución del Examen del Segundo Parcial y del Examen de Recuperación Integral en PostgreSQL bajo condiciones de evaluación sumativa.
 

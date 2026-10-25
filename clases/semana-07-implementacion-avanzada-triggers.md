@@ -720,7 +720,7 @@ SELECT auditoria_id, esquema_tabla, operacion, diferencias
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Triggers Avanzados en PostgreSQL: Cláusula WHEN, Triggers Condicionales y Recursividad](https://www.youtube.com/results?search_query=postgresql+triggers+avanzados+when+recursividad)**  
+> 🎬 **[Triggers Avanzados en PostgreSQL: Cláusula WHEN y Variables NEW/OLD](https://www.youtube.com/watch?v=kN_mD0tWPbE)**  
 > **Canal / Autor:** El Laboratorio de Rafa • **Duración estimada:** ~30 min • **Idioma:** Español  
 > **Temas clave explicados:** Optimización de disparadores con la cláusula WHEN, prevención de bucles recursivos mediante pg_trigger_depth(), orden de disparo y manejo de reglas de integridad complejas.
 
@@ -1286,7 +1286,7 @@ EXECUTE FUNCTION fn_instead_of_vw_stock_quito();
 
 > [!TIP]
 > **Video de Apoyo Académico (Español):**  
-> 🎬 **[Triggers Avanzados Combinados con Procedimientos Almacenados y Auditoría en JSONB](https://www.youtube.com/results?search_query=postgresql+triggers+procedimientos+jsonb+auditoria)**  
+> 🎬 **[Auditoría Completa con Triggers y formato JSONB en PostgreSQL](https://www.youtube.com/watch?v=PF4J64WP5Fc)**  
 > **Canal / Autor:** SystemGuards / Fazt Code • **Duración estimada:** ~40 min • **Idioma:** Español  
 > **Temas clave explicados:** Taller integrador de automatización: Procedimiento transaccional de facturación combinado con triggers de validación, auditoría diferencial en JSONB y soft delete con vistas editables.
 

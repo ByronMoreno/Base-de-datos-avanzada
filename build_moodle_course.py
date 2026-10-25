@@ -1,74 +1,166 @@
 # -*- coding: utf-8 -*-
 """
-Script maestro para la construcción y diseño estético profesional del curso en Moodle,
-incorporando los videos en español para cada una de las clases de 2 y 3 horas.
-URL: https://baseavanzada.milaulas.com/course/view.php?id=2
+Script maestro para incrustar reproductores de video YouTube (iframes interactivos)
+en Moodle (https://baseavanzada.milaulas.com/course/view.php?id=2)
+y actualizar los archivos markdown del repositorio.
 """
 import sys
+import re
 import requests
 from bs4 import BeautifulSoup
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-s = requests.Session()
-s.headers.update(headers)
+VIDEOS = {
+    "w1_c1": {
+        "id": "kvt2wE-q-yY",
+        "canal": "TodoCode",
+        "titulo": "Normalización en Bases de Datos (1FN, 2FN, 3FN)",
+        "duracion": "~28 min",
+        "desc": "Reglas de transformación a relacional, atomicidad, dependencias funcionales y 3FN."
+    },
+    "w1_c2": {
+        "id": "FRT38sQeZ-w",
+        "canal": "PicaCódigo",
+        "titulo": "PostgreSQL: Creación de Tablas DDL, Primary Key y Foreign Keys",
+        "duracion": "~32 min",
+        "desc": "Sentencias DDL, CREATE TABLE, PRIMARY KEY, FOREIGN KEY, CHECK y IDENTITY."
+    },
+    "w2_c3": {
+        "id": "FprFu75BoE4",
+        "canal": "Fazt Code",
+        "titulo": "Consultas SQL y Relaciones con JOINs (INNER, LEFT, RIGHT, FULL)",
+        "duracion": "~35 min",
+        "desc": "Operadores lógicos, funciones escalares y cruce de tablas con JOINs."
+    },
+    "w2_c4": {
+        "id": "Uu2hUZumPxY",
+        "canal": "PicaCódigo",
+        "titulo": "PostgreSQL: GROUP BY, HAVING, Subconsultas e Ingesta Masiva",
+        "duracion": "~40 min",
+        "desc": "Agrupamiento analítico, filtros HAVING, subconsultas y COPY CSV."
+    },
+    "w3_c5": {
+        "id": "9CxEgOEVJt8",
+        "canal": "SystemGuards",
+        "titulo": "Vistas y Vistas Materializadas en PostgreSQL con REFRESH",
+        "duracion": "~25 min",
+        "desc": "Vistas estándar vs materializadas, índices subyacentes y REFRESH CONCURRENTLY."
+    },
+    "w3_c6": {
+        "id": "scA1Mahdgvw",
+        "canal": "Mauro Bernal",
+        "titulo": "Optimización de Consultas, Índices B-Tree y EXPLAIN ANALYZE",
+        "duracion": "~30 min",
+        "desc": "Estructuras de índices (B-Tree, GIN) y análisis de costos con EXPLAIN ANALYZE."
+    },
+    "w4_c7": {
+        "id": "TP9gg2vICGM",
+        "canal": "BettaTech",
+        "titulo": "Los Errores más Comunes al Escribir Consultas SQL",
+        "duracion": "~22 min",
+        "desc": "Anti-patrones frecuentes, mala utilización de índices y optimización de consultas."
+    },
+    "w4_c8": {
+        "id": "5fxcSskfgxE",
+        "canal": "La Geekipedia de Ernesto",
+        "titulo": "Resolución Práctica de Examen y Ejercicios de Base de Datos",
+        "duracion": "~45 min",
+        "desc": "Resolución paso a paso de casos de laboratorio y modelado relacional."
+    },
+    "w5_c9": {
+        "id": "_ccMbzh9Ji0",
+        "canal": "Jesús Conde",
+        "titulo": "Curso PostgreSQL: Programación con PL/pgSQL y Funciones",
+        "duracion": "~26 min",
+        "desc": "Estructura de bloques anónimos, variables, condicionales y funciones escalares."
+    },
+    "w5_c10": {
+        "id": "ZJz-8IPP0ks",
+        "canal": "PicaCódigo",
+        "titulo": "Procedimientos Almacenados (STORED PROCEDURES) en PostgreSQL",
+        "duracion": "~34 min",
+        "desc": "CREATE PROCEDURE, control transaccional con CALL, COMMIT y parámetros INOUT."
+    },
+    "w6_c11": {
+        "id": "obVLJxvLAOA",
+        "canal": "Jesús Conde",
+        "titulo": "Curso PostgreSQL: Triggers y Disparadores en PL/pgSQL",
+        "duracion": "~24 min",
+        "desc": "Fundamentos de triggers, timing BEFORE/AFTER, y variables NEW y OLD."
+    },
+    "w6_c12": {
+        "id": "rzML_5HqnhI",
+        "canal": "Tutoriales de Programación",
+        "titulo": "Implementación Práctica de Triggers para Auditoría y Stock",
+        "duracion": "~35 min",
+        "desc": "Disparador para actualizar stock en compras/ventas y tabla de auditoría automática."
+    },
+    "w7_c13": {
+        "id": "kN_mD0tWPbE",
+        "canal": "El Laboratorio de Rafa",
+        "titulo": "Triggers Avanzados en PostgreSQL: Cláusula WHEN y Variables NEW/OLD",
+        "duracion": "~28 min",
+        "desc": "Condiciones de activación con WHEN, control de estados y validaciones complejas."
+    },
+    "w7_c14": {
+        "id": "PF4J64WP5Fc",
+        "canal": "SystemGuards",
+        "titulo": "Auditoría Completa con Triggers y formato JSONB en PostgreSQL",
+        "duracion": "~38 min",
+        "desc": "Captura dinámica de columnas modificadas en formato JSONB para trazabilidad."
+    },
+    "w8_c15": {
+        "id": "0tAqp3w_K2o",
+        "canal": "BettaTech",
+        "titulo": "Transacciones ACID, Aislamiento y Concurrencia en Bases de Datos",
+        "duracion": "~25 min",
+        "desc": "Atomicidad, consistencia, aislamiento, durabilidad y control de concurrencia MVCC."
+    },
+    "w8_c16": {
+        "id": "l60FP1gHtJE",
+        "canal": "PicaCódigo",
+        "titulo": "Seguridad en PostgreSQL: Roles, Usuarios, Permisos y RLS",
+        "duracion": "~36 min",
+        "desc": "Gestión de roles (ROLE), privilegios GRANT/REVOKE y Row-Level Security."
+    },
+    "w9_c17": {
+        "id": "cHGaDfzJyY4",
+        "canal": "Fazt Code",
+        "titulo": "PostgreSQL y Buenas Prácticas de Arquitectura de Bases de Datos",
+        "duracion": "~30 min",
+        "desc": "Repaso general de optimización, índices, seguridad y diseño escalable."
+    },
+    "w9_c18": {
+        "id": "b8BSf5SV7to",
+        "canal": "La Geekipedia de Ernesto",
+        "titulo": "Cómo Defender y Presentar un Proyecto de Software y Base de Datos",
+        "duracion": "~27 min",
+        "desc": "Guía práctica para exposición técnica, defensa de arquitectura y sustentación oral."
+    }
+}
 
-# 1. Login
-print("Iniciando sesión en Moodle...")
-r = s.get('https://baseavanzada.milaulas.com/login/index.php')
-token = BeautifulSoup(r.text, 'html.parser').find('input', {'name': 'logintoken'})['value']
-r_login = s.post('https://baseavanzada.milaulas.com/login/index.php', data={
-    'username': 'bmoreno',
-    'password': 'Datos2026$',
-    'logintoken': token
-})
+def render_video_embed(key):
+    v = VIDEOS[key]
+    return f"""
+    <div style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 700; color: #dc2626; font-size: 0.78rem;">📺 Video Tutorial en Español ({v['duracion']}):</span>
+            <a href="https://www.youtube.com/watch?v={v['id']}" target="_blank" style="font-size: 0.74rem; color: #2563eb; font-weight: 600; text-decoration: underline;">Abrir en YouTube ↗</a>
+        </div>
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.12); background: #000;">
+            <iframe src="https://www.youtube.com/embed/{v['id']}" title="{v['titulo']}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+        </div>
+        <div style="font-size: 0.74rem; color: #475569; margin-top: 5px; line-height: 1.3;">
+            <strong>{v['canal']}:</strong> {v['titulo']}
+        </div>
+    </div>
+    """
 
-if 'Área personal' in r_login.text or 'bmoreno' in r_login.text:
-    print("Login exitoso como Byron Moreno.")
-else:
-    print("Error en login.")
-    sys.exit(1)
-
-def update_section(sec_id, name, summary_html):
-    print(f"\n--- Sincronizando Sección ID={sec_id}: '{name}' ---")
-    url = f'https://baseavanzada.milaulas.com/course/editsection.php?id={sec_id}'
-    r_form = s.get(url)
-    soup = BeautifulSoup(r_form.text, 'html.parser')
-    form = soup.find('form', class_='mform')
-    if not form:
-        print(f"Error: no se encontró formulario en {url}")
-        return False
-    
-    post_data = {}
-    for inp in form.find_all(['input', 'textarea', 'select']):
-        n = inp.get('name')
-        if not n: continue
-        if inp.name == 'select':
-            sel = inp.find('option', selected=True)
-            post_data[n] = sel.get('value') if sel else ''
-        elif inp.name == 'textarea':
-            post_data[n] = inp.text
-        else:
-            post_data[n] = inp.get('value', '')
-            
-    if 'cancel' in post_data: del post_data['cancel']
-    
-    post_data['name'] = name
-    post_data['summary_editor[text]'] = summary_html.strip()
-    post_data['summary_editor[format]'] = '1'
-    
-    action_url = form.get('action') or url
-    r_res = s.post(action_url, data=post_data)
-    if r_res.status_code == 200 and 'course/view.php' in r_res.url:
-        print(f"Sección {sec_id} guardada con éxito.")
-        return True
-    else:
-        print(f"Resultado inesperado en sección {sec_id}: status={r_res.status_code}")
-        return False
+print("Generando HTML completo de Secciones Moodle con reproductores incrustados...")
 
 # ============================================================================
-# SECCIÓN 0: INFORMACIÓN GENERAL Y PRESENTACIÓN
+# SECCIÓN 1: UNIDAD 1
 # ============================================================================
 SEC0_NAME = "📌 Información General y Presentación de la Asignatura"
 
@@ -199,14 +291,14 @@ SEC0_HTML = """
 # ============================================================================
 # SECCIÓN 1: UNIDAD 1
 # ============================================================================
-SEC1_NAME = "🏛️ UNIDAD 1: Sentencias SQL complejas, vistas e índices"
 
-SEC1_HTML = """
+SEC1_NAME = "🏛️ UNIDAD 1: Sentencias SQL complejas, vistas e índices"
+SEC1_HTML = f"""
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
 
-    <!-- CABECERA DE LA UNIDAD 1 -->
-    <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <!-- CABECERA DE UNIDAD 1 -->
+    <div style="background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
             <div>
                 <span style="background: rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
                     ID Unidad: 347552 • Carga: 23 Horas • Semanas 1 a 4
@@ -226,7 +318,7 @@ SEC1_HTML = """
     </div>
 
     <!-- TARJETAS SEMANALES UNIDAD 1 -->
-    <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
 
         <!-- SEMANA 1 -->
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
@@ -239,26 +331,18 @@ SEC1_HTML = """
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
                 <strong>Resultado de Aprendizaje:</strong> Modela esquemas relacionales normalizados hasta 3FN e implementa la base de datos en PostgreSQL con sentencias DDL, tablas catálogo y relaciones polimórficas garantizando la consistencia de datos.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 1 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 1 (Lunes 26/10 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Transformación conceptual a lógico, normalización (1FN-3FN), catálogo unificado vs tipos ENUM, arcos exclusivos polimórficos y DDL con <code>IDENTITY</code>.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=normalizacion+bases+de+datos+todocode+1fn+2fn+3fn" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Modelado y Normalización (1FN, 2FN, 3FN) — TodoCode
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.92rem;">Clase 1 (Lunes 26/10 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Transformación conceptual a lógico, normalización (1FN-3FN), catálogo unificado vs tipos ENUM, arcos exclusivos polimórficos y DDL con <code>IDENTITY</code>.</div>
+                    {render_video_embed('w1_c1')}
                 </div>
                 <!-- Clase 2 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 2 (Miércoles 28/10 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Taller en pgModeler/Lucidchart e implementación DDL de la plataforma turística <em>KunturGo</em> con pruebas de restricciones y solucionario.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+ddl+create+table+foreign+key+picacodigo" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Tablas DDL y Claves Foráneas en PostgreSQL — PicaCódigo
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #15803d; font-size: 0.92rem;">Clase 2 (Miércoles 28/10 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller en pgModeler/Lucidchart e implementación DDL de la plataforma turística <em>KunturGo</em> con pruebas de restricciones y solucionario.</div>
+                    {render_video_embed('w1_c2')}
                 </div>
             </div>
         </div>
@@ -274,26 +358,18 @@ SEC1_HTML = """
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
                 <strong>Resultados de Aprendizaje:</strong> Ejecuta consultas analíticas avanzadas sobre múltiples tablas, valida consistencia de datos mediante agrupamiento y subconsultas, y utiliza asistentes de inteligencia artificial para formular consultas en PostgreSQL.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 3 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 3 (Lunes 02/11 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Orden léxico vs lógico en SQL, operadores relacionales/lógicos, funciones escalares (numéricas, texto, fecha), cruce de tablas con JOINs y DISTINCT asistidos por IA.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+consultas+avanzadas+joins+fazt" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Consultas Complejas y JOINs en PostgreSQL — Fazt Code
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.92rem;">Clase 3 (Lunes 02/11 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Orden léxico vs lógico en SQL, operadores relacionales/lógicos, funciones escalares (numéricas, texto, fecha), cruce de tablas con JOINs y DISTINCT asistidos por IA.</div>
+                    {render_video_embed('w2_c3')}
                 </div>
                 <!-- Clase 4 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 4 (Miércoles 04/11 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Taller de agregaciones (<code>GROUP BY</code>, <code>HAVING</code>, <code>FILTER</code>), subconsultas, CTEs múltiples (<code>WITH</code>) e ingesta masiva (<code>COPY</code>, <code>generate_series</code>).</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+group+by+having+subconsultas+copy+csv" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): GROUP BY, HAVING y Carga COPY CSV — PicaCódigo
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #15803d; font-size: 0.92rem;">Clase 4 (Miércoles 04/11 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller de agregaciones (<code>GROUP BY</code>, <code>HAVING</code>, <code>FILTER</code>), subconsultas, CTEs múltiples (<code>WITH</code>) e ingesta masiva (<code>COPY</code>, <code>generate_series</code>).</div>
+                    {render_video_embed('w2_c4')}
                 </div>
             </div>
             <div style="margin-top: 8px; font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 6px 10px; border-radius: 4px;">
@@ -312,26 +388,18 @@ SEC1_HTML = """
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
                 <strong>Resultado de Aprendizaje:</strong> Diseña e implementa vistas e índices optimizados, analiza planes de ejecución y compara el rendimiento computacional de consultas SQL en PostgreSQL.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 5 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 5 (Lunes 09/11 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Vistas estándar y materializadas (<code>REFRESH CONCURRENTLY</code>), estructura de índices (B-Tree, Hash, GIN), lectura de planes de ejecución con <code>EXPLAIN ANALYZE</code>.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+vistas+materializadas+systemguards" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Vistas y Vistas Materializadas en PostgreSQL — SystemGuards
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.92rem;">Clase 5 (Lunes 09/11 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Vistas estándar y materializadas (<code>REFRESH CONCURRENTLY</code>), estructura de índices (B-Tree, Hash, GIN), lectura de planes de ejecución con <code>EXPLAIN ANALYZE</code>.</div>
+                    {render_video_embed('w3_c5')}
                 </div>
                 <!-- Clase 6 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 6 (Miércoles 11/11 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Creación y eliminación de vistas, creación de índices parciales y compuestos, comparativa de métricas de rendimiento con y sin índice.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+explain+analyze+indices+systemguards" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Optimización con Índices y EXPLAIN ANALYZE — Mauro Bernal
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #15803d; font-size: 0.92rem;">Clase 6 (Miércoles 11/11 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Creación y eliminación de vistas, creación de índices parciales y compuestos, comparativa de métricas de rendimiento con y sin índice.</div>
+                    {render_video_embed('w3_c6')}
                 </div>
             </div>
         </div>
@@ -347,26 +415,18 @@ SEC1_HTML = """
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
                 <strong>Resultado de Aprendizaje:</strong> Resuelve problemas complejos de modelado, extracción y optimización de datos en PostgreSQL demostrando dominio técnico de los contenidos de la Unidad 1.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 7 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 7 (Lunes 16/11 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Retroalimentación académica, síntesis de la Unidad 1, clínica de dudas y análisis de los 6 errores más frecuentes en exámenes.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=errores+comunes+sql+consultas+bettatech" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Errores Típicos en Consultas y Trucos SQL — BettaTech
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.92rem;">Clase 7 (Lunes 16/11 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Retroalimentación académica, síntesis de la Unidad 1, clínica de dudas y análisis de los 6 errores más frecuentes en exámenes.</div>
+                    {render_video_embed('w4_c7')}
                 </div>
                 <!-- Clase 8 -->
-                <div style="background: #f8fafc; border-left: 3px solid #dc2626; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #b91c1c;">Clase 8 (Miércoles 18/11 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;"><strong>Examen Práctico Oficial del Primer Parcial:</strong> Caso empresarial integrador <em>Yavirac Heritage Stays</em> en laboratorio.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=resolucion+examen+practico+postgresql+laboratorio" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Resolución de Caso de Examen Práctico — La Geekipedia
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #dc2626; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #b91c1c; font-size: 0.92rem;">Clase 8 (Miércoles 18/11 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;"><strong>Examen Práctico Oficial del Primer Parcial:</strong> Caso empresarial integrador <em>Yavirac Heritage Stays</em> en laboratorio.</div>
+                    {render_video_embed('w4_c8')}
                 </div>
             </div>
         </div>
@@ -379,13 +439,12 @@ SEC1_HTML = """
 # SECCIÓN 2: UNIDAD 2
 # ============================================================================
 SEC2_NAME = "⚙️ UNIDAD 2: Procedimientos, funciones y triggers"
-
-SEC2_HTML = """
+SEC2_HTML = f"""
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
 
-    <!-- CABECERA DE LA UNIDAD 2 -->
-    <div style="background: linear-gradient(135deg, #047857 0%, #059669 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <!-- CABECERA DE UNIDAD 2 -->
+    <div style="background: linear-gradient(135deg, #065f46 0%, #059669 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.15);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
             <div>
                 <span style="background: rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
                     ID Unidad: 347553 • Carga: 15 Horas • Semanas 5 a 7
@@ -394,50 +453,42 @@ SEC2_HTML = """
                     Unidad 2: Procedimientos, funciones y triggers
                 </h3>
                 <p style="margin: 0; color: #d1fae5; font-size: 0.92rem;">
-                    <strong>Competencia:</strong> Aplicar herramientas y tecnologías de bases de datos avanzadas para implementar mecanismos de procesamiento y gestión eficiente de la información en aplicaciones de software.
+                    <strong>Competencia:</strong> Automatizar la lógica de negocio y reglas de integridad transaccional dentro del motor de base de datos utilizando programación procedural en PostgreSQL.
                 </p>
             </div>
             <div style="text-align: right; font-size: 0.85rem; color: #a7f3d0;">
-                <div>Evaluación: <strong>Talleres Prácticos Integradores</strong></div>
-                <div>Fechas: <strong>23 Nov — 09 Dic 2026</strong></div>
+                <div>Evaluación: <strong>Talleres & Triggers</strong></div>
+                <div>Fechas: <strong>23 Nov — 11 Dic 2026</strong></div>
             </div>
         </div>
     </div>
 
     <!-- TARJETAS SEMANALES UNIDAD 2 -->
-    <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
 
         <!-- SEMANA 5 -->
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h5 style="margin: 0; color: #047857; font-weight: 700; font-size: 1.05rem;">
-                    📗 Semana 5: Funciones y Procedimientos Almacenados en PL/pgSQL (5 Horas)
+                <h5 style="margin: 0; color: #065f46; font-weight: 700; font-size: 1.05rem;">
+                    📘 Semana 5: Programación en el Motor: Funciones y Procedimientos en PL/pgSQL (5 Horas)
                 </h5>
                 <span style="background: #d1fae5; color: #065f46; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">23 & 25 Nov 2026</span>
             </div>
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
-                <strong>Resultado de Aprendizaje:</strong> Desarrolla funciones y procedimientos almacenados en PL/pgSQL aplicando parámetros avanzados, variables de registro y estructuras de control para encapsular lógica de negocio en el motor de base de datos.
+                <strong>Resultado de Aprendizaje:</strong> Implementa funciones y procedimientos almacenados en PL/pgSQL incorporando parámetros, estructuras de control, manejo de excepciones y transacciones autónomas.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 9 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 9 (Lunes 23/11 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Arquitectura de rutinas (FUNCTION vs PROCEDURE), argumentos (IN, OUT, INOUT, VARIADIC), retornos escalares/tabulares, variables RECORD y cláusula <code>SELECT ... INTO</code>.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+plpgsql+funciones+jesus+conde" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Introducción a PL/pgSQL y Funciones — Jesús Conde
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #059669; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #047857; font-size: 0.92rem;">Clase 9 (Lunes 23/11 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Arquitectura de PL/pgSQL, bloques anónimos (<code>DO</code>), variables, tipos de datos, estructuras condicionales (<code>IF-THEN-ELSE</code>) y bucles (<code>LOOP</code>, <code>WHILE</code>, <code>FOR</code>).</div>
+                    {render_video_embed('w5_c9')}
                 </div>
                 <!-- Clase 10 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 10 (Miércoles 25/11 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Taller de desarrollo, invocación y eliminación de rutinas; función de amortización crediticia con <code>RETURN NEXT</code> y procedimientos transaccionales.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+stored+procedures+create+procedure+call" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Procedimientos Almacenados en PostgreSQL — PicaCódigo
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #10b981; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #065f46; font-size: 0.92rem;">Clase 10 (Miércoles 25/11 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller de creación de funciones escalares y con retorno de tablas (<code>RETURNS TABLE</code>), procedimientos almacenados (<code>CREATE PROCEDURE</code>) y gestión de excepciones.</div>
+                    {render_video_embed('w5_c10')}
                 </div>
             </div>
         </div>
@@ -445,34 +496,26 @@ SEC2_HTML = """
         <!-- SEMANA 6 -->
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h5 style="margin: 0; color: #047857; font-weight: 700; font-size: 1.05rem;">
-                    📗 Semana 6: Fundamentos, Arquitectura y Creación de Triggers (5 Horas)
+                <h5 style="margin: 0; color: #065f46; font-weight: 700; font-size: 1.05rem;">
+                    📘 Semana 6: Fundamentos y Creación de Triggers (Disparadores) (5 Horas)
                 </h5>
                 <span style="background: #d1fae5; color: #065f46; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">30 Nov & 02 Dic 2026</span>
             </div>
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
-                <strong>Resultado de Aprendizaje:</strong> Construye e implementa disparadores y funciones trigger en PostgreSQL que garantizan la integridad activa de los datos y ejecutan auditorías automáticas ante operaciones DML.
+                <strong>Resultado de Aprendizaje:</strong> Construye triggers en PostgreSQL para auditar modificaciones de datos y forzar restricciones de negocio complejas antes o después de operaciones DML.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 11 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 11 (Lunes 30/11 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Modelo de 2 pasos, eventos (INSERT/UPDATE/DELETE/TRUNCATE), momentos (BEFORE/AFTER/INSTEAD OF), variables de contexto (NEW, OLD, TG_*) y cláusula WHEN.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+triggers+disparadores+jesus+conde" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Fundamentos de Disparadores en PostgreSQL — Jesús Conde
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #059669; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #047857; font-size: 0.92rem;">Clase 11 (Lunes 30/11 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Concepto de trigger, ciclo de vida, eventos (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>), momentos (<code>BEFORE</code>, <code>AFTER</code>), registros especiales <code>NEW</code> y <code>OLD</code>.</div>
+                    {render_video_embed('w6_c11')}
                 </div>
                 <!-- Clase 12 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 12 (Miércoles 02/12 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Taller de triggers para validación automática de precios, sincronización de existencias de inventario en Kardex y auditoría forense multi-tabla.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+triggers+stock+auditoria+picacodigo" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Triggers para Control de Stock y Auditoría — PicaCódigo
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #10b981; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #065f46; font-size: 0.92rem;">Clase 12 (Miércoles 02/12 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller de triggers para actualización de stock en tiempo real y diseño de tablas de auditoría de movimientos con captura de usuario y timestamp.</div>
+                    {render_video_embed('w6_c12')}
                 </div>
             </div>
         </div>
@@ -480,34 +523,26 @@ SEC2_HTML = """
         <!-- SEMANA 7 -->
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h5 style="margin: 0; color: #047857; font-weight: 700; font-size: 1.05rem;">
-                    📗 Semana 7: Implementación Avanzada de Triggers en Producción (5 Horas)
+                <h5 style="margin: 0; color: #065f46; font-weight: 700; font-size: 1.05rem;">
+                    📘 Semana 7: Implementación Avanzada de Triggers y Procedimientos (5 Horas)
                 </h5>
                 <span style="background: #d1fae5; color: #065f46; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">07 & 09 Dic 2026</span>
             </div>
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
-                <strong>Resultados de Aprendizaje:</strong> Diseña e implementa soluciones automatizadas avanzadas mediante triggers condicionales y procedimientos almacenados en PostgreSQL, garantizando la consistencia y trazabilidad de los datos.
+                <strong>Resultado de Aprendizaje:</strong> Integra triggers avanzados con cláusulas condicionales WHEN, transacciones y estructuras JSONB para auditoría forense empresarial.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 13 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 13 (Lunes 07/12 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Patrones avanzados: triggers condicionales, arcos de integridad complejos, prevención de recursividad con <code>pg_trigger_depth()</code>, auditoría diferencial con JSONB y soft delete.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+triggers+avanzados+when+recursividad" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Triggers Avanzados y Cláusula WHEN — El Laboratorio de Rafa
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #059669; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #047857; font-size: 0.92rem;">Clase 13 (Lunes 07/12 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Triggers a nivel de fila vs sentencia (<code>FOR EACH ROW</code> vs <code>STATEMENT</code>), cláusula <code>WHEN</code>, prevención de mutaciones y recursividad en cascada.</div>
+                    {render_video_embed('w7_c13')}
                 </div>
                 <!-- Clase 14 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 14 (Miércoles 09/12 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Laboratorio integrador de cierre de Unidad 2: Procedimiento transaccional de facturación combinado con disparadores en la distribuidora <em>TechAndes S.A.</em></div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+triggers+procedimientos+jsonb+auditoria" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Triggers con Procedimientos y Auditoría JSONB — SystemGuards
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #10b981; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #065f46; font-size: 0.92rem;">Clase 14 (Miércoles 09/12 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller de auditoría forense con almacenamiento de snapshots en <code>JSONB</code>, simulación de ataques de inyección y trazabilidad de eventos.</div>
+                    {render_video_embed('w7_c14')}
                 </div>
             </div>
         </div>
@@ -520,13 +555,12 @@ SEC2_HTML = """
 # SECCIÓN 3: UNIDAD 3
 # ============================================================================
 SEC3_NAME = "🔐 UNIDAD 3: Transacciones y Seguridad"
-
-SEC3_HTML = """
+SEC3_HTML = f"""
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
 
-    <!-- CABECERA DE LA UNIDAD 3 -->
-    <div style="background: linear-gradient(135deg, #b45309 0%, #d97706 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <!-- CABECERA DE UNIDAD 3 -->
+    <div style="background: linear-gradient(135deg, #7c2d12 0%, #c2410c 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(124, 45, 18, 0.15);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
             <div>
                 <span style="background: rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
                     ID Unidad: 347554 • Carga: 10 Horas • Semanas 8 y 9
@@ -534,51 +568,43 @@ SEC3_HTML = """
                 <h3 style="margin: 8px 0 4px 0; font-size: 1.5rem; font-weight: 800; color: #ffffff;">
                     Unidad 3: Transacciones y Seguridad
                 </h3>
-                <p style="margin: 0; color: #fef3c7; font-size: 0.92rem;">
-                    <strong>Competencia:</strong> Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información.
+                <p style="margin: 0; color: #ffedd5; font-size: 0.92rem;">
+                    <strong>Competencia:</strong> Garantizar la integridad transaccional ACID, la concurrencia y la seguridad perimetral y granular de bases de datos relacionales en entornos de producción.
                 </p>
             </div>
-            <div style="text-align: right; font-size: 0.85rem; color: #fde68a;">
-                <div>Evaluación: <strong>Examen Parcial 2 & Recuperación</strong></div>
-                <div>Fechas: <strong>14 Dic — 23 Dic 2026</strong></div>
+            <div style="text-align: right; font-size: 0.85rem; color: #fed7aa;">
+                <div>Evaluación: <strong>Examen Parcial 2 & PIS</strong></div>
+                <div>Fechas: <strong>14 Dic 2026 — 06 Ene 2027</strong></div>
             </div>
         </div>
     </div>
 
     <!-- TARJETAS SEMANALES UNIDAD 3 -->
-    <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
 
         <!-- SEMANA 8 -->
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h5 style="margin: 0; color: #b45309; font-weight: 700; font-size: 1.05rem;">
-                    📙 Semana 8: Transacciones, Concurrencia y Seguridad (Roles y Usuarios) (5 Horas)
+                <h5 style="margin: 0; color: #7c2d12; font-weight: 700; font-size: 1.05rem;">
+                    📘 Semana 8: Transacciones, Concurrencia (ACID) y Seguridad en PostgreSQL (5 Horas)
                 </h5>
-                <span style="background: #fef3c7; color: #92400e; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">14 & 16 Dic 2026</span>
+                <span style="background: #ffedd5; color: #7c2d12; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">14 & 16 Dic 2026</span>
             </div>
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
-                <strong>Resultado de Aprendizaje:</strong> Describe los conceptos de transaccionalidad y concurrencia y administra roles, privilegios y políticas de seguridad para el control de acceso a la información en PostgreSQL.
+                <strong>Resultado de Aprendizaje:</strong> Configura transacciones concurrentes con propiedades ACID y aplica políticas de seguridad mediante roles, privilegios y Row-Level Security (RLS) en PostgreSQL.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 15 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 15 (Lunes 14/12 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Propiedades ACID, comandos TCL (BEGIN, COMMIT, ROLLBACK, SAVEPOINT), concurrencia MVCC, niveles de aislamiento, bloqueos pesimistas, deadlocks y criterios de seguridad.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=transacciones+acid+concurrencia+mvcc+postgresql" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Transacciones ACID y Concurrencia MVCC — BettaTech
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #c2410c; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #9a3412; font-size: 0.92rem;">Clase 15 (Lunes 14/12 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Propiedades ACID, control de concurrencia multiversión (MVCC), anomalías de concurrencia y niveles de aislamiento SQL.</div>
+                    {render_video_embed('w8_c15')}
                 </div>
                 <!-- Clase 16 -->
-                <div style="background: #f8fafc; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #15803d;">Clase 16 (Miércoles 16/12 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;">Laboratorio simultáneo en 2 terminales concurrentes, prevención de Lost Update con <code>FOR UPDATE</code>, matriz de roles RBAC y políticas Row-Level Security (RLS).</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=postgresql+roles+usuarios+permisos+rls+seguridad" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Roles, Permisos y Seguridad RLS en PostgreSQL — PicaCódigo
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #ea580c; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #c2410c; font-size: 0.92rem;">Clase 16 (Miércoles 16/12 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;">Taller de simulación de bloqueos (<code>pg_locks</code>), gestión de roles (<code>CREATE ROLE</code>), permisos granulares y políticas de seguridad por fila (<code>RLS</code>).</div>
+                    {render_video_embed('w8_c16')}
                 </div>
             </div>
         </div>
@@ -587,33 +613,25 @@ SEC3_HTML = """
         <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border-left: 5px solid #dc2626;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
                 <h5 style="margin: 0; color: #b91c1c; font-weight: 700; font-size: 1.05rem;">
-                    🎓 Semana 9: Repaso Final, Examen Parcial 2 y Examen de Recuperación (5 Horas)
+                    🎓 Semana 9: Repaso General, Evaluación del Segundo Parcial y Recuperación (5 Horas)
                 </h5>
-                <span style="background: #fee2e2; color: #991b1b; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">21 & 23 Dic 2026</span>
+                <span style="background: #fee2e2; color: #991b1b; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">04 & 06 Ene 2027</span>
             </div>
             <p style="font-size: 0.86rem; color: #475569; margin: 0 0 10px 0;">
-                <strong>Resultado de Aprendizaje:</strong> Demuestra dominio integral en el desarrollo de procedimientos, triggers, transacciones seguras y optimización de bases de datos relacionales en PostgreSQL bajo evaluación sumativa.
+                <strong>Resultado de Aprendizaje:</strong> Resuelve escenarios complejos de bases de datos integrando procedimientos, triggers, concurrencia transaccional y seguridad para la evaluación sumativa final.
             </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; font-size: 0.85rem;">
                 <!-- Clase 17 -->
-                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #0369a1;">Clase 17 (Lunes 21/12 — 2h ACD / Aula)</div>
-                    <div style="color: #334155; margin-top: 2px;">Retroalimentación académica final de la asignatura, síntesis de Unidades 2 y 3, clínica de dudas de PL/pgSQL y verificación de rúbricas del PIS.</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=repaso+final+bases+de+datos+avanzadas+postgresql" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (2h): Repaso General y Buenas Prácticas en PostgreSQL — Fazt Code
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #0284c7; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.92rem;">Clase 17 (Lunes 04/01 — 2h ACD / Aula)</div>
+                    <div style="color: #334155; margin-top: 3px;">Sesión integradora de síntesis: resolución de dudas en PL/pgSQL, triggers, transacciones y preparación para la defensa del Proyecto Integrador.</div>
+                    {render_video_embed('w9_c17')}
                 </div>
                 <!-- Clase 18 -->
-                <div style="background: #f8fafc; border-left: 3px solid #dc2626; padding: 10px 14px; border-radius: 4px;">
-                    <div style="font-weight: 700; color: #b91c1c;">Clase 18 (Miércoles 23/12 — 3h APECD / Laboratorio)</div>
-                    <div style="color: #334155; margin-top: 2px;"><strong>Examen Práctico Oficial del Segundo Parcial</strong> (<em>CoopYavirac Ltda.</em>) y <strong>Examen de Recuperación Integral</strong> (<em>AndesMed S.A.</em>).</div>
-                    <div style="margin-top: 8px;">
-                        <a href="https://www.youtube.com/results?search_query=evaluacion+final+laboratorio+postgresql+examen" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; padding: 3px 8px; font-size: 0.76rem; font-weight: 700; text-decoration: none;">
-                            🎬 Video (3h): Guía de Evaluación y Defensa de Proyecto — La Geekipedia
-                        </a>
-                    </div>
+                <div style="background: #f8fafc; border-left: 3px solid #dc2626; padding: 12px 14px; border-radius: 6px;">
+                    <div style="font-weight: 700; color: #b91c1c; font-size: 0.92rem;">Clase 18 (Miércoles 06/01 — 3h APECD / Laboratorio)</div>
+                    <div style="color: #334155; margin-top: 3px;"><strong>Examen Práctico Oficial del Segundo Parcial:</strong> Caso integrador en laboratorio de PL/pgSQL, triggers y transacciones, cierre de actas y examen de recuperación.</div>
+                    {render_video_embed('w9_c18')}
                 </div>
             </div>
         </div>
@@ -623,97 +641,106 @@ SEC3_HTML = """
 """
 
 # ============================================================================
-# SECCIÓN 4: PROYECTO INTEGRADOR Y RECURSOS
+# SECCIÓN 4 / ID=5: PROYECTO INTEGRADOR (LIMPIO)
 # ============================================================================
 SEC4_NAME = "🏆 Proyecto Integrador de Saberes (PIS), Datasets y Evaluaciones"
-
 SEC4_HTML = """
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
 
-    <!-- CABECERA DE PROYECTO Y RECURSOS -->
-    <div style="background: linear-gradient(135deg, #475569 0%, #334155 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(51, 65, 85, 0.15);">
+    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); color: #ffffff; border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.2);">
         <h3 style="margin: 0 0 6px 0; font-size: 1.5rem; font-weight: 800; color: #ffffff;">
-            🏆 Proyecto Integrador de Saberes (PIS), Datasets Reales y Bibliografía
+            Proyecto Integrador de Saberes (PIS) & Recursos Oficiales
         </h3>
-        <p style="margin: 0; color: #cbd5e1; font-size: 0.92rem;">
-            Espacio de integración curricular, especificaciones del proyecto de fin de ciclo, bases de datos de benchmarking a gran escala y referencias bibliográficas oficiales.
+        <p style="margin: 0; color: #e0e7ff; font-size: 0.92rem;">
+            Espacio de entrega de entregables de arquitectura de datos, scripts DDL/DML, datasets reales y defensas orales.
         </p>
     </div>
 
-    <!-- TARJETAS DE PIS Y DATASETS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
-        
-        <!-- PIS -->
-        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid #0284c7; border-radius: 10px; padding: 18px 20px;">
-            <h5 style="color: #0369a1; margin: 0 0 10px 0; font-size: 1.05rem;">
-                🚀 Proyecto de Integración de Saberes (PIS)
-            </h5>
-            <p style="font-size: 0.88rem; color: #475569; margin-bottom: 12px;">
-                Desarrollo de una solución empresarial completa que integra todos los núcleos de aprendizaje del semestre:
-            </p>
-            <ul style="font-size: 0.85rem; color: #334155; margin: 0; padding-left: 18px; line-height: 1.5;">
-                <li>Modelado lógico normalizado (3FN) con tablas catálogo y arcos polimórficos.</li>
-                <li>Estrategias de indexación y vistas materializadas analíticas.</li>
-                <li>Lógica procedural en PL/pgSQL (funciones y procedimientos almacenados transaccionales).</li>
-                <li>Triggers activos para validación de negocio y bitácora de auditoría diferencial con JSONB.</li>
-                <li>Seguridad granular con roles empresariales (RBAC) y políticas Row-Level Security (RLS).</li>
-            </ul>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h5 style="color: #4338ca; font-weight: 700; margin: 0 0 6px 0;">📦 Entregable Parcial 1: Modelo y DDL</h5>
+            <p style="font-size: 0.84rem; color: #64748b; margin: 0 0 8px 0;">Entrega del script DDL estructurado, diccionario de datos y diagrama entidad-relación en pgModeler/Lucidchart.</p>
+            <span style="background: #ede9fe; color: #5b21b6; font-size: 0.75rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">Semana 4 • Peso: 2.0 pts</span>
         </div>
 
-        <!-- Datasets Reales -->
-        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid #16a34a; border-radius: 10px; padding: 18px 20px;">
-            <h5 style="color: #15803d; margin: 0 0 10px 0; font-size: 1.05rem;">
-                🗄️ Datasets Estándar para Laboratorios Reales
-            </h5>
-            <div style="font-size: 0.85rem; color: #334155; line-height: 1.5;">
-                <div style="margin-bottom: 8px;">
-                    <strong>1. Employees (3.9 Millones de registros):</strong> Utilizado en análisis de rendimiento, escaneos secuenciales vs de índice, y benchmarking con <code>EXPLAIN ANALYZE</code>.
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <strong>2. Pagila (62.322 filas / 33 tablas):</strong> Modelo completo de alquiler de películas para funciones PL/pgSQL, triggers y transacciones concurrentes.
-                </div>
-                <div>
-                    <strong>3. MusicBrainz:</strong> Esquema empresarial de metadatos musicales para estudio de tablas catálogo y relaciones polimórficas a gran escala.
-                </div>
-            </div>
+        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h5 style="color: #4338ca; font-weight: 700; margin: 0 0 6px 0;">⚙️ Entregable Parcial 2: Lógica y Triggers</h5>
+            <p style="font-size: 0.84rem; color: #64748b; margin: 0 0 8px 0;">Entrega de funciones analíticas, procedimientos transaccionales y triggers de auditoría con JSONB.</p>
+            <span style="background: #ede9fe; color: #5b21b6; font-size: 0.75rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">Semana 8 • Peso: 2.5 pts</span>
         </div>
 
-    </div>
-
-    <!-- BIBLIOGRAFÍA OFICIAL PEA -->
-    <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px;">
-        <h5 style="color: #0f172a; margin: 0 0 12px 0; font-size: 1.05rem;">
-            📚 Bibliografía Oficial del PEA (Asignatura DS4AC1-215)
-        </h5>
-        <ol style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: #334155; line-height: 1.6;">
-            <li><strong>Obe, R., & Hsu, L. (2014).</strong> <em>PostgreSQL: Up and Running</em> (2da Ed.). EE.UU.: O'Reilly Media. <em>(Disponible en Biblioteca Digital Yavirac)</em>.</li>
-            <li><strong>Domínguez Chávez, J. (2019).</strong> <em>Fundamentos de Programación en Lenguaje PL/pgSQL</em>. Aragua: IEASS Editorial. <em>(Disponible en Biblioteca Digital Yavirac)</em>.</li>
-            <li><strong>Sánchez, F., Pazmiño, G., Gordón, A., Mera, E., Chipuxi, L., Moya, Y., Páez, R., Mejía, H. (2024).</strong> <em>Guía completa de desarrollo de software</em> (Tomo 2, 1ra Ed.). Quito: Editorial Yavirac. ISBN: 978-9942-48-412-3. <em>(Disponible en Biblioteca Digital Yavirac)</em>.</li>
-            <li><strong>Silberschatz, A., Korth, H. F., & Sudarshan, S. (2006).</strong> <em>Fundamentos de Bases de Datos</em> (5ta Ed.). McGraw-Hill.</li>
-            <li><strong>Elmasri, R., & Navathe, S. B. (2007).</strong> <em>Fundamentos de Sistemas de Bases de Datos</em> (5ta Ed.). Pearson Educación.</li>
-            <li><strong>Zea, M., Molina, J., & Redrován, F. (2017).</strong> <em>Administración de base de datos con PostgreSQL</em>. Alicante: Área de Innovación y Desarrollo, S.L.</li>
-        </ol>
+        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h5 style="color: #b91c1c; font-weight: 700; margin: 0 0 6px 0;">🎯 Defensa Final del Proyecto PIS</h5>
+            <p style="font-size: 0.84rem; color: #64748b; margin: 0 0 8px 0;">Sustentación oral, demostración técnica en vivo, consulta de métricas y evaluación de rúbrica.</p>
+            <span style="background: #fee2e2; color: #991b1b; font-size: 0.75rem; font-weight: 700; border-radius: 4px; padding: 2px 8px;">Semana 9 • Peso: 3.5 pts</span>
+        </div>
     </div>
 
 </div>
 """
 
-# Ejecutar actualizaciones en las 5 secciones
-sections_to_update = [
-    (1, SEC0_NAME, SEC0_HTML),
-    (2, SEC1_NAME, SEC1_HTML),
-    (3, SEC2_NAME, SEC2_HTML),
-    (4, SEC3_NAME, SEC3_HTML),
-    (5, SEC4_NAME, SEC4_HTML)
-]
+# 2. Conexión y subida a Moodle
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+s = requests.Session()
+s.headers.update(headers)
 
-success_count = 0
-for sec_id, name, html in sections_to_update:
-    ok = update_section(sec_id, name, html)
-    if ok:
-        success_count += 1
+print("\nIniciando sesión en Moodle...")
+r = s.get('https://baseavanzada.milaulas.com/login/index.php')
+token = BeautifulSoup(r.text, 'html.parser').find('input', {'name': 'logintoken'})['value']
+r_login = s.post('https://baseavanzada.milaulas.com/login/index.php', data={
+    'username': 'bmoreno',
+    'password': 'Datos2026$',
+    'logintoken': token
+})
 
-print(f"\n========================================================")
-print(f"Resumen de sincronización: {success_count} de 5 secciones actualizadas con videos.")
-print(f"URL del curso: https://baseavanzada.milaulas.com/course/view.php?id=2")
-print(f"========================================================")
+if 'Área personal' in r_login.text or 'bmoreno' in r_login.text:
+    print("Login exitoso como Byron Moreno.")
+else:
+    print("Error en login.")
+    sys.exit(1)
+
+def update_section(sec_id, name, summary_html):
+    print(f"\n--- Sincronizando Sección ID={sec_id}: '{name}' ---")
+    url = f'https://baseavanzada.milaulas.com/course/editsection.php?id={sec_id}'
+    r_form = s.get(url)
+    soup = BeautifulSoup(r_form.text, 'html.parser')
+    form = soup.find('form', class_='mform')
+    if not form:
+        print(f"Error: no se encontró formulario en {url}")
+        return False
+    
+    post_data = {}
+    for inp in form.find_all(['input', 'textarea', 'select']):
+        n = inp.get('name')
+        if not n: continue
+        if inp.name == 'select':
+            sel = inp.find('option', selected=True)
+            post_data[n] = sel.get('value') if sel else ''
+        elif inp.name == 'textarea':
+            post_data[n] = inp.text
+        else:
+            post_data[n] = inp.get('value', '')
+            
+    if 'cancel' in post_data: del post_data['cancel']
+    
+    post_data['name'] = name
+    post_data['summary_editor[text]'] = summary_html.strip()
+    post_data['summary_editor[format]'] = '1'
+    
+    action_url = form.get('action') or url
+    r_res = s.post(action_url, data=post_data)
+    if r_res.status_code == 200 and 'course/view.php' in r_res.url:
+        print(f"Sección {sec_id} guardada con éxito.")
+        return True
+    else:
+        print(f"Resultado inesperado en sección {sec_id}: status={r_res.status_code}")
+        return False
+
+# Actualizar Secciones con reproductores incrustados
+update_section(1, SEC0_NAME, SEC0_HTML)
+update_section(2, SEC1_NAME, SEC1_HTML)
+update_section(3, SEC2_NAME, SEC2_HTML)
+update_section(4, SEC3_NAME, SEC3_HTML)
+update_section(5, SEC4_NAME, SEC4_HTML)
+
+print("\n¡Todas las secciones de Moodle han sido actualizadas con reproductores incrustados!")
