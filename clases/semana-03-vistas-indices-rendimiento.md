@@ -354,6 +354,16 @@ WHERE codigo_autorizacion = 'AUTH-2026-0085432';
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 5 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Vistas Estándar y Vistas Materializadas en PostgreSQL: Arquitectura y Optimización](https://www.youtube.com/results?search_query=postgresql+vistas+materializadas+systemguards)**  
+> **Canal / Autor:** El Laboratorio de Rafa / SystemGuards • **Duración estimada:** ~26 min • **Idioma:** Español  
+> **Temas clave explicados:** Abstracción de datos mediante vistas complejas, diferencias con vistas materializadas, refresco concurrente de datos (REFRESH MATERIALIZED VIEW CONCURRENTLY) e introducción al almacenamiento físico.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 6 (11/11/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario del Taller: Optimización y Gestión de Vistas e Índices en `pasarela_pagos`
@@ -642,6 +652,16 @@ DROP INDEX IF EXISTS idx_temporal_redundante;
 | **Reporte KPIs por canal y SO** | `Seq Scan + HashAggregate` | ~42.00 ms | ~1,852 págs | `Seq Scan sobre MVW (12 filas)` | **~0.03 ms** | **1 pág** | **~1,400x más rápido** |
 
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 6 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Índices en PostgreSQL y Análisis de Rendimiento con EXPLAIN ANALYZE](https://www.youtube.com/results?search_query=postgresql+explain+analyze+indices+systemguards)**  
+> **Canal / Autor:** SystemGuards / Mauro Bernal • **Duración estimada:** ~34 min • **Idioma:** Español  
+> **Temas clave explicados:** Estructura de índices B-Tree, índices compuestos y parciales, lectura técnica de planes de ejecución en PostgreSQL y comparativa de tiempos de respuesta con y sin índice.
 
 ---
 

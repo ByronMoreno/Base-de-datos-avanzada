@@ -411,6 +411,16 @@ CREATE POLICY pol_auditor_ver_todo
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 15 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Transacciones ACID, Concurrencia y Niveles de Aislamiento en PostgreSQL](https://www.youtube.com/results?search_query=transacciones+acid+concurrencia+mvcc+postgresql)**  
+> **Canal / Autor:** BettaTech / SystemGuards • **Duración estimada:** ~30 min • **Idioma:** Español  
+> **Temas clave explicados:** Propiedades ACID, comandos TCL (BEGIN, COMMIT, ROLLBACK, SAVEPOINT), arquitectura MVCC, fenómenos de concurrencia, niveles de aislamiento, bloqueos pesimistas y deadlocks.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 16 (16/12/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 El taller de 4 horas se divide en **dos laboratorios prácticos**:
@@ -752,6 +762,16 @@ UPDATE clinica.consultas_medicas
 RESET ROLE;
 ```
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 16 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Seguridad en PostgreSQL: Gestión de Roles, Usuarios, Privilegios y Row-Level Security (RLS)](https://www.youtube.com/results?search_query=postgresql+roles+usuarios+permisos+rls+seguridad)**  
+> **Canal / Autor:** PicaCódigo / Jesús Conde • **Duración estimada:** ~35 min • **Idioma:** Español  
+> **Temas clave explicados:** Administración de seguridad relacional: roles, usuarios, jerarquías, privilegios granulares (GRANT/REVOKE), esquemas seguros y políticas de seguridad a nivel de fila (RLS).
 
 ---
 

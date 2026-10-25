@@ -403,6 +403,16 @@ ORDER BY facturacion_neta_usd DESC;
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 3 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Consultas SQL Avanzadas, Funciones Escalares y Cruce de Tablas con JOINs en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+consultas+avanzadas+joins+fazt)**  
+> **Canal / Autor:** Fazt Code / De Cero a Cien • **Duración estimada:** ~35 min • **Idioma:** Español  
+> **Temas clave explicados:** Orden lógico de evaluación en SQL, operadores relacionales y lógicos, funciones escalares de fecha/texto, cruce de tablas con INNER/LEFT/RIGHT/FULL JOIN y asistencia de IA en VS Code.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 4 (04/11/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario Empresarial: Auditoría y Reportería Gerencial en "AndesMarket B2B"
@@ -640,6 +650,16 @@ ORDER BY ventas_netas_usd DESC;
 ```
 
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 4 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Funciones de Agregación, GROUP BY, HAVING, Subconsultas e Ingreso Masivo en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+group+by+having+subconsultas+copy+csv)**  
+> **Canal / Autor:** PicaCódigo / Informática DP • **Duración estimada:** ~30 min • **Idioma:** Español  
+> **Temas clave explicados:** Agrupamiento analítico con GROUP BY y HAVING, subconsultas correlacionadas, expresiones de tabla comunes (CTEs con WITH) y carga masiva de archivos CSV con comando COPY.
 
 ---
 

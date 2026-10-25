@@ -488,6 +488,16 @@ ORDER BY auditoria_id DESC;
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 11 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Fundamentos y Arquitectura de Triggers (Disparadores) en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+triggers+disparadores+jesus+conde)**  
+> **Canal / Autor:** Jesús Conde / El Laboratorio de Rafa • **Duración estimada:** ~25 min • **Idioma:** Español  
+> **Temas clave explicados:** Modelo de 2 pasos en PostgreSQL (función trigger RETURNS TRIGGER + CREATE TRIGGER), eventos DML (INSERT, UPDATE, DELETE), tiempos (BEFORE, AFTER, INSTEAD OF) y variables NEW/OLD.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 12 (02/12/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 Sobre el esquema `yavirac_logistics` desplegado en la sección 5.1, resuelve los siguientes **6 ejercicios prácticos de ingeniería de triggers** en tu archivo `semana06_triggers_fundamentos.sql`. Para cada ejercicio debes escribir:
@@ -835,6 +845,16 @@ DROP FUNCTION IF EXISTS fn_trg_impedir_truncate();
 ```
 
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 12 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Laboratorio Práctico: Triggers para Control de Stock y Auditoría Automática en PostgreSQL](https://www.youtube.com/results?search_query=postgresql+triggers+stock+auditoria+picacodigo)**  
+> **Canal / Autor:** PicaCódigo / Informática DP • **Duración estimada:** ~35 min • **Idioma:** Español  
+> **Temas clave explicados:** Creación paso a paso de disparadores para validación de precios, sincronización automática de stock en Kardex y registro de bitácoras de auditoría en tablas transaccionales.
 
 ---
 

@@ -189,6 +189,16 @@ Durante la sesión de contacto con el docente resolvemos las **8 dudas críticas
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 17 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Repaso y Síntesis Avanzada de Programación, Transacciones y Seguridad en PostgreSQL](https://www.youtube.com/results?search_query=repaso+final+bases+de+datos+avanzadas+postgresql)**  
+> **Canal / Autor:** Fazt Code / TodoCode • **Duración estimada:** ~30 min • **Idioma:** Español  
+> **Temas clave explicados:** Síntesis ejecutiva de las Unidades 2 y 3, clínica de dudas de PL/pgSQL, transacciones concurrentes, seguridad RBAC/RLS y criterios de evaluación del Proyecto Integrador (PIS).
+
+---
+
 ## 📝 5. PARTE II: CLASE 18 (23/12/2026 — 3 Horas / APECD) — Examen del Segundo Parcial y Examen de Recuperación
 
 ### Instrucciones Generales de Evaluación
@@ -839,6 +849,16 @@ GRANT INSERT ON andesmed.kardex_auditoria TO rol_farmaceutico;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA andesmed TO rol_farmaceutico;
 ```
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 18 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Metodología de Resolución de Evaluación Práctica Integral de Bases de Datos en PostgreSQL](https://www.youtube.com/results?search_query=evaluacion+final+laboratorio+postgresql+examen)**  
+> **Canal / Autor:** La Geekipedia de Ernesto / PicaCódigo • **Duración estimada:** ~40 min • **Idioma:** Español  
+> **Temas clave explicados:** Guía técnica para la resolución del Examen del Segundo Parcial y del Examen de Recuperación Integral en PostgreSQL bajo condiciones de evaluación sumativa.
 
 ---
 

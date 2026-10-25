@@ -302,6 +302,16 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_ingresos_mensuales;
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 7 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Clínica de Errores Comunes y Preguntas Frecuentes en Consultas SQL y PostgreSQL](https://www.youtube.com/results?search_query=errores+comunes+sql+consultas+bettatech)**  
+> **Canal / Autor:** BettaTech / TodoCode • **Duración estimada:** ~22 min • **Idioma:** Español  
+> **Temas clave explicados:** Resolución de errores típicos en exámenes: trampa de nulos con NOT IN, funciones aplicadas a columnas indexadas (expresiones no SARGables) y optimización de consultas complejas.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 8 (18/11/2026 — 3 Horas / APECD) — Examen Práctico del Primer Parcial Oficial
 
 ### 🏛️ Caso Empresarial Integrador: Plataforma "Yavirac Heritage Stays"
@@ -936,6 +946,16 @@ WHERE entidad_tipo = 'HOTEL'
 ```
 
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 8 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Simulacro y Metodología de Resolución de Examen Práctico de Laboratorio en PostgreSQL](https://www.youtube.com/results?search_query=resolucion+examen+practico+postgresql+laboratorio)**  
+> **Canal / Autor:** La Geekipedia de Ernesto / PicaCódigo • **Duración estimada:** ~40 min • **Idioma:** Español  
+> **Temas clave explicados:** Guía práctica de resolución de un caso empresarial integral de evaluación: modelado DDL, consultas analíticas, vistas e indexación bajo tiempo cronometrado.
 
 ---
 

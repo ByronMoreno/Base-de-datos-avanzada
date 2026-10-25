@@ -512,6 +512,16 @@ LEFT JOIN operadores_turisticos o ON i.operador_id = o.operador_id;
 
 ---
 
+### 📺 Video Tutorial Recomendado en Español — Clase 1 (2 Horas — ACD / Aula)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Modelado de Bases de Datos Relacionales y Normalización (1FN, 2FN, 3FN)](https://www.youtube.com/results?search_query=normalizacion+bases+de+datos+todocode+1fn+2fn+3fn)**  
+> **Canal / Autor:** TodoCode / Edgar Ramírez • **Duración estimada:** ~28 min • **Idioma:** Español  
+> **Temas clave explicados:** Explicación de las reglas formales de transformación del modelo conceptual a relacional lógico, reducción de redundancias, diseño de tablas catálogo paramétricas y normalización hasta 3FN.
+
+---
+
 ## 🛠️ 6. PARTE II: CLASE 2 (28/10/2026 — 3 Horas / APECD) — Taller Práctico-Experimental en Laboratorio
 
 ### Escenario Empresarial Realista: Plataforma "KunturGo — Ecosistema de Reservas Turísticas y Culturales"
@@ -899,6 +909,16 @@ ORDER BY r.resena_id;
 ```
 
 </details>
+
+---
+
+### 📺 Video Tutorial Recomendado en Español — Clase 2 (3 Horas — APECD / Laboratorio)
+
+> [!TIP]
+> **Video de Apoyo Académico (Español):**  
+> 🎬 **[Modelado y Creación de Tablas con DDL en PostgreSQL y pgAdmin 4](https://www.youtube.com/results?search_query=postgresql+ddl+create+table+foreign+key+picacodigo)**  
+> **Canal / Autor:** PicaCódigo / La Geekipedia de Ernesto • **Duración estimada:** ~32 min • **Idioma:** Español  
+> **Temas clave explicados:** Implementación práctica en PostgreSQL de sentencias DDL (CREATE TABLE, PRIMARY KEY, FOREIGN KEY, CHECK, IDENTITY) y resolución de restricciones de integridad y arcos polimórficos.
 
 ---
 
