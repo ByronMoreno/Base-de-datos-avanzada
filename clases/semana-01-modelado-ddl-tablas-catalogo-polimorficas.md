@@ -957,12 +957,15 @@ curl -L -O https://raw.githubusercontent.com/neondatabase/postgres-sample-dbs/ma
 createdb -U postgres employees
 gunzip -c employees.sql.gz | psql -U postgres -d employees
 
+pg_restore -U postgres -d employees employees.sql
+
 # ============================================================================
 # 2. DESCARGAR Y RESTAURAR "PAGILA" (~62.322 filas - 33 tablas)
 # ============================================================================
 curl -L -O https://raw.githubusercontent.com/neondatabase/postgres-sample-dbs/main/pagila.sql.gz
 createdb -U postgres pagila
 gunzip -c pagila.sql.gz | psql -U postgres -d pagila
+
 ```
 
 ---
@@ -970,6 +973,11 @@ gunzip -c pagila.sql.gz | psql -U postgres -d pagila
 ### 🔍 Caso Real 1: Ingeniería Inversa de `Employees` (Modelado Temporal y Claves Compuestas)
 
 La base de datos **Employees** consta de **6 tablas altamente cohesionadas** pero que almacenan casi **4 millones de filas** (`salaries` por sí sola contiene `2,844,047` registros y `dept_emp` contiene `331,603` registros).
+
+> [!TIP]
+> **🚀 Taller Práctico Especializado:**  
+> Consulta el documento complementario con los **[25 Ejercicios Prácticos DDL y SQL sobre Employees](semana-01-taller-ejercicios-ddl-sql-employees.md)**, clasificados desde nivel inicial hasta avanzado accesible con soluciones comentadas y análisis arquitectónico.
+
 
 #### Diagrama Entidad-Relación de `Employees`
 
