@@ -59,6 +59,16 @@ Desarrollar en los estudiantes las competencias necesarias para aplicar técnica
 | **3** | **Brinda** asistencia técnica en el diseño de bases de datos mediante procesos de control y seguimiento de las operaciones para el manejo adecuado de la información. | Administrar y controlar las operaciones de bases de datos mediante mecanismos de seguimiento, integridad y gestión de transacciones que garanticen la confiabilidad de la información. | • Describe los conceptos de transaccionalidad y concurrencia; y las instrucciones para crear roles y usuarios.<br>• Implementación de políticas de seguridad y control de acceso. |
 | **4** | **Realiza** procesos de análisis y verificación de consistencia de datos extraídos de diversas fuentes, que permitan generar reportes relevantes para una organización. | Analizar y validar datos provenientes de distintas fuentes utilizando consultas y mecanismos de verificación de consistencia para generar información útil para la toma de decisiones. | • Consultas SQL complejas para extracción y análisis de datos.<br>• Verificación de consistencia de datos mediante reglas o restricciones. |
 
+
+---
+
+## 🌐 3.1 Portal Web Interactivo: Tutorial SQL Estilo W3Schools sobre Employees
+
+Se encuentra disponible una aplicación web completa y organizada ubicada en la carpeta [	utorial-sql-employees/](./tutorial-sql-employees/):
+- **Estructura W3Schools:** Barra de navegación lateral con buscador rápido y categorización en **SQL TUTORIAL** (SELECT, WHERE, JOIN, GROUP BY, HAVING, EXISTS...) y **SQL DATABASE / DDL** (CREATE TABLE, ALTER TABLE, PRIMARY KEY, FOREIGN KEY, CHECK, INDEX, VIEWS...).
+- **Metodología Oficial:** Cada tema contiene su definición conceptual, sintaxis SQL resaltada, visualización de datos reales de Employees, ejemplo con botón *Ejecutar Consulta* que despliega el resultado tabular y una caja interactiva *Ponte a Prueba con un Ejercicio* con validación y solución instantánea.
+- **Cómo usarlo:** Solo abre con doble clic el archivo [	utorial-sql-employees/index.html](./tutorial-sql-employees/index.html) en tu navegador preferido (Chrome, Edge, Firefox).
+
 ---
 
 ## 🗓️ 4. Cronograma Oficial de Clases — Paralelo D (18 Sesiones / 9 Semanas)

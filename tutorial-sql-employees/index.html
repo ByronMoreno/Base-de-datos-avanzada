@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Tutorial con Base de Datos Real Employees | IST Yavirac</title>
+    <meta name="description" content="Tutorial interactivo de SQL y DDL organizado al estilo W3Schools aplicado sobre la base de datos real Employees con 4 millones de registros.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
+</head>
+<body>
+
+    <!-- TOP NAV HEADER -->
+    <header class="top-header">
+        <div class="brand-section">
+            <button class="menu-toggle-btn" id="menu-toggle" aria-label="Abrir menú">☰</button>
+            <div class="logo-badge">W3.YAVIRAC</div>
+            <div class="brand-title">
+                SQL Tutorial <span>| BD Employees</span>
+            </div>
+        </div>
+        <nav class="nav-links">
+            <a href="#intro" class="active">SQL</a>
+            <a href="https://github.com/ByronMoreno/Base-de-datos-avanzada" target="_blank">Repositorio ↗</a>
+            <button class="theme-toggle-btn" id="theme-toggle">🌙 Oscuro</button>
+        </nav>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="app-container">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-search-box">
+                <input type="text" id="sidebar-search" placeholder="🔍 Buscar tema (WHERE, JOIN...)...">
+            </div>
+            <div id="sidebar-nav">
+                <!-- Se inyecta dinámicamente con JavaScript -->
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="content-wrapper" id="content-wrapper">
+
+            <!-- TOP PREV / NEXT NAV -->
+            <div class="topic-header-nav">
+                <button class="nav-btn" id="prev-topic-btn">❮ Anterior</button>
+                <button class="nav-btn" id="next-topic-btn">Siguiente ❯</button>
+            </div>
+
+            <!-- TOPIC HEADER -->
+            <h1 class="topic-title" id="topic-title">Cargando...</h1>
+            <p class="topic-desc" id="topic-desc"></p>
+
+            <div class="w3-info-box">
+                💡 <strong>Base de datos activa:</strong> <code>employees</code> en PostgreSQL (3,919,015 registros, 6 tablas altamente normalizadas con modelado temporal y claves compuestas).
+            </div>
+
+            <!-- SYNTAX SECTION -->
+            <h2 class="section-subtitle">Sintaxis SQL Oficial</h2>
+            <div class="syntax-box" id="syntax-box"></div>
+
+            <!-- DEMO DATABASE SECTION -->
+            <h2 class="section-subtitle">Base de Datos de Ejemplo (Employees)</h2>
+            <div id="table-demo-container"></div>
+
+            <!-- EXAMPLE BOX -->
+            <h2 class="section-subtitle">Ejemplo Práctico</h2>
+            <div class="w3-example">
+                <h3>Ejemplo</h3>
+                <p id="example-explanation" style="font-size: 0.95rem; margin-bottom: 12px; color: #475569;"></p>
+                <div class="w3-code-container" id="example-code"></div>
+                <button class="try-btn" onclick="executeExample()">Ejecutar Consulta / Ver Resultado ❯</button>
+                <div id="result-output-box" class="result-box"></div>
+            </div>
+
+            <!-- EXERCISE BOX -->
+            <div id="exercise-container" class="w3-exercise-box"></div>
+
+            <!-- BOTTOM PREV / NEXT NAV -->
+            <div class="topic-header-nav" style="margin-top: 48px; border-top: 1px solid var(--w3-card-border); padding-top: 24px;">
+                <button class="nav-btn" id="bottom-prev-btn">❮ Anterior</button>
+                <button class="nav-btn" id="bottom-next-btn">Siguiente ❯</button>
+            </div>
+
+            <!-- FOOTER INFO -->
+            <footer style="margin-top: 40px; font-size: 0.85rem; color: #64748b; text-align: center;">
+                Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac • Base de Datos Avanzada (DS4AC1-215)<br>
+                Docente: Ing. Byron Moreno • Tecnología Superior en Desarrollo de Software
+            </footer>
+
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

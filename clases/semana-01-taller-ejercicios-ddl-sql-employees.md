@@ -6,6 +6,7 @@
 > **Docente:** Ing. Byron Moreno  
 > **Periodo Académico:** 2026-II | **Modalidad:** Dual  
 > **Caso de Estudio:** 🔍 Caso Real 1: Ingeniería Inversa de `Employees` (Modelado Temporal y Claves Compuestas)
+> **Portal Interactivo (Estilo W3Schools):** [	utorial-sql-employees/index.html](../tutorial-sql-employees/index.html)  
 
 ---
 

@@ -977,6 +977,8 @@ La base de datos **Employees** consta de **6 tablas altamente cohesionadas** per
 > [!TIP]
 > **🚀 Taller Práctico Especializado:**  
 > Consulta el documento complementario con los **[25 Ejercicios Prácticos DDL y SQL sobre Employees](semana-01-taller-ejercicios-ddl-sql-employees.md)**, clasificados desde nivel inicial hasta avanzado accesible con soluciones comentadas y análisis arquitectónico.
+> 
+> 🌐 **Portal Web Interactivo (Estilo W3Schools):** También puedes explorar y practicar estos conceptos en la aplicación web interactiva abriendo **[	utorial-sql-employees/index.html](../tutorial-sql-employees/index.html)**.
 
 
 #### Diagrama Entidad-Relación de `Employees`
