@@ -190,7 +190,7 @@ SEC0_HTML = """
             </div>
             <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 18px 22px; min-width: 260px;">
                 <div style="font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">Docente de la Asignatura</div>
-                <div style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin: 4px 0 2px 0;">Ing. Yoli Moya, MSc.</div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin: 4px 0 2px 0;">Ing. Byron Moreno</div>
                 <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 10px;">Coordinadora de Carrera / Representante de Colectivo</div>
                 <div style="font-size: 0.82rem; color: #e2e8f0; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
                     ✉️ Atención académica y tutorías presenciales / virtuales

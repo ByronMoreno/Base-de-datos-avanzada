@@ -3,7 +3,7 @@
 > **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
 > **Carrera:** Tecnología Superior en Desarrollo de Software  
 > **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** Paralelo D  
-> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Docente:** Ing. Byron Moreno  
 > **Unidad 2:** Generación de procedimientos, funciones y triggers  
 > **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
@@ -16,7 +16,7 @@
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
 | **Carrera / Nivel** | Desarrollo de Software — Segundo Semestre (Modalidad Dual) |
 | **Periodo Académico** | 2026-II |
-| **Docente** | Ing. Yoli Moya, MSc. |
+| **Docente** | Ing. Byron Moreno |
 | **Asignatura / Código** | Base de Datos Avanzada (`DS4AC1-215`) |
 | **Paralelo** | Paralelo D |
 | **Unidad Curricular** | Unidad 2: Generación de procedimientos, funciones y triggers (ID Unidad: 347553) |

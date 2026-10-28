@@ -3,7 +3,7 @@
 > **Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac**  
 > **Carrera:** Tecnología Superior en Desarrollo de Software  
 > **Asignatura:** Base de Datos Avanzada (`DS4AC1-215`) | **Paralelo:** D  
-> **Docente:** Ing. Yoli Moya, MSc. (Representante del Colectivo de Asignatura)  
+> **Docente:** Ing. Byron Moreno  
 > **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
 
 Bienvenido al repositorio oficial de clases, talleres prácticos, guías de laboratorio y evaluaciones de la asignatura **Base de Datos Avanzada**, estructurado sesión por sesión conforme al **Programa de Estudios de la Asignatura (PEA)** oficial y a la planificación de unidades del **Paralelo D**.
@@ -15,7 +15,7 @@ Bienvenido al repositorio oficial de clases, talleres prácticos, guías de labo
 | Campo | Detalle Oficial (PEA) |
 | :--- | :--- |
 | **Institución** | Instituto Superior Tecnológico de Turismo y Patrimonio Yavirac |
-| **Docente** | Ing. Yoli Moya, MSc. (Coordinadora / Representante del Colectivo) |
+| **Docente** | Ing. Byron Moreno |
 | **Carrera** | Tecnología Superior en Desarrollo de Software |
 | **Código y Semestre** | `DS4AC1-215` — Segundo Semestre |
 | **Paralelo** | Paralelo D |

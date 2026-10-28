@@ -59,26 +59,15 @@ function poblarClassroomCompleto() {
   }
 
   // ---------------------------------------------------------------------------------
-  // 2. CREACIÓN DE UNIDADES TEMÁTICAS (TOPICS)
+  // 2. CREACIÓN O RECUPERACIÓN DE UNIDADES TEMÁTICAS (TOPICS)
   // ---------------------------------------------------------------------------------
-  Logger.log("📁 Creando Unidades Temáticas oficiales...");
-  var topicU1 = Classroom.Courses.Topics.create({
-    name: "Unidad 1: Sentencias SQL complejas, vistas e índices"
-  }, courseId);
+  Logger.log("📁 Verificando y creando Unidades Temáticas oficiales...");
+  var topicU1 = obtenerOCrearTopic("Unidad 1: Sentencias SQL complejas, vistas e índices", courseId);
+  var topicU2 = obtenerOCrearTopic("Unidad 2: Procedimientos, funciones y triggers", courseId);
+  var topicU3 = obtenerOCrearTopic("Unidad 3: Transacciones y seguridad", courseId);
+  var topicGeneral = obtenerOCrearTopic("Recursos Generales y Software de Laboratorio", courseId);
 
-  var topicU2 = Classroom.Courses.Topics.create({
-    name: "Unidad 2: Procedimientos, funciones y triggers"
-  }, courseId);
-
-  var topicU3 = Classroom.Courses.Topics.create({
-    name: "Unidad 3: Transacciones y seguridad"
-  }, courseId);
-
-  var topicGeneral = Classroom.Courses.Topics.create({
-    name: "Recursos Generales y Software de Laboratorio"
-  }, courseId);
-
-  Logger.log("✅ Unidades temáticas creadas.");
+  Logger.log("✅ Unidades temáticas listas.");
 
   // ---------------------------------------------------------------------------------
   // 3. PUBLICACIÓN DE MATERIALES DE ESTUDIO CON VIDEOS EN ESPAÑOL
@@ -192,8 +181,24 @@ function poblarClassroomCompleto() {
     }
   ];
 
+  // Obtener lista previa de materiales para no duplicar si ya existen
+  var materialesExistentes = {};
+  try {
+    var prevMats = Classroom.Courses.CourseWorkMaterials.list(courseId);
+    if (prevMats.courseWorkMaterial) {
+      for (var pm = 0; pm < prevMats.courseWorkMaterial.length; pm++) {
+        materialesExistentes[prevMats.courseWorkMaterial[pm].title] = true;
+      }
+    }
+  } catch (eListM) {}
+
   for (var m = 0; m < materiales.length; m++) {
     var mat = materiales[m];
+    if (materialesExistentes[mat.title]) {
+      Logger.log("  -> Material ya existente (omitido): " + mat.title);
+      continue;
+    }
+
     var matsList = [];
     for (var l = 0; l < mat.links.length; l++) {
       matsList.push({
@@ -433,8 +438,24 @@ function poblarClassroomCompleto() {
     }
   ];
 
+  // Obtener lista previa de tareas para no duplicar si ya existen
+  var tareasExistentes = {};
+  try {
+    var prevCw = Classroom.Courses.CourseWork.list(courseId);
+    if (prevCw.courseWork) {
+      for (var pc = 0; pc < prevCw.courseWork.length; pc++) {
+        tareasExistentes[prevCw.courseWork[pc].title] = true;
+      }
+    }
+  } catch (eListC) {}
+
   for (var i = 0; i < tareas.length; i++) {
     var t = tareas[i];
+    if (tareasExistentes[t.title]) {
+      Logger.log("  -> Tarea ya existente (omitida): " + t.title);
+      continue;
+    }
+
     var cw = {
       title: t.title,
       description: t.description,
@@ -470,6 +491,42 @@ function poblarClassroomCompleto() {
   Logger.log("   • Materiales de estudio con Videos en Español y Documentación técnica.");
   Logger.log("   • 9 Tareas y Evaluaciones con Rúbrica desglosada sobre 10 puntos.");
   Logger.log("👉 Abre tu Classroom para verificarlo: https://classroom.google.com/c/" + courseId);
+}
+
+/**
+ * Función auxiliar para crear o reutilizar un Tema existente (evita error 'already exists')
+ */
+function obtenerOCrearTopic(nombre, courseId) {
+  try {
+    var response = Classroom.Courses.Topics.list(courseId);
+    if (response.topic && response.topic.length > 0) {
+      for (var i = 0; i < response.topic.length; i++) {
+        if (response.topic[i].name === nombre) {
+          Logger.log("  -> Unidad ya existente detectada: " + nombre);
+          return response.topic[i];
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso al listar topics: " + e.message);
+  }
+
+  try {
+    var nuevoTopic = Classroom.Courses.Topics.create({ name: nombre }, courseId);
+    Logger.log("  -> Unidad creada: " + nombre);
+    return nuevoTopic;
+  } catch (e2) {
+    Logger.log("Reintentando recuperar topic existente: " + nombre);
+    try {
+      var resp2 = Classroom.Courses.Topics.list(courseId);
+      if (resp2.topic) {
+        for (var j = 0; j < resp2.topic.length; j++) {
+          if (resp2.topic[j].name === nombre) return resp2.topic[j];
+        }
+      }
+    } catch (e3) {}
+    return { topicId: null };
+  }
 }
 
 /**
