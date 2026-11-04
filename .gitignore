@@ -1,0 +1,11 @@
+# Archivos privados y solucionarios exclusivos del docente
+*solucionario*.md
+solucionarios/
+privado/
+*.privado.md
+
+# Archivos de entorno y caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
