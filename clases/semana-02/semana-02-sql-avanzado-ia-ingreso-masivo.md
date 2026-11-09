@@ -6,7 +6,7 @@
 > **Docente:** Ing. Byron Moreno  
 > **Unidad 1:** Sentencias SQL complejas, vistas e índices  
 > **Periodo Académico:** 2026-II | **Semestre:** Segundo | **Modalidad:** Dual  
-> 📝 **Material Complementario de Práctica:** [Guía de 30 Ejercicios SQL (Employees)](./ejercicios-sql-employees.md) \| [Solucionario Oficial con Respuestas](./ejercicios-sql-employees-solucionario.md) \| 🌐 [Portal Web W3Schools](../../tutorial-sql-employees/index.html)  
+> 📝 **Material Complementario de Práctica:** [Guía 1: 30 Ejercicios Básicos SQL](./ejercicios-sql-employees.md) \| [Guía 2: 30 Ejercicios Multi-Tabla y JOINs](./ejercicios-sql-multitabla-joins.md) \| 🌐 [Portal Web W3Schools](../../tutorial-sql-employees/index.html)  
 
 ---
 
